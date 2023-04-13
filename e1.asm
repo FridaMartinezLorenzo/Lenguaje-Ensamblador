@@ -69,6 +69,23 @@ OTRO:MOV DL,[DI]
    CALL ESCRIBE_CADENA
    CALL LEER_CAR_SIN_ECO
    
+   mov dx, offset SALTA
+   CALL escribe_cadena
+   
+   ;IMPRIMIR LA CADENA CONTENIDO DE MANERA INVERSA CARACTER A CARACTER
+   LEA DI,CONTENIDO
+   MOV DH,[DI]
+   ADD DI,19 ;LEA DI, CONTENIDO+19
+SIGUIENTE:MOV DL,[DI]
+     CMP DL,DH
+     JE SALI
+     DEC DI
+     CALL escribe_CAR_
+     JMP SIGUIENTE
+     SALI:
+     CALL escribe_CAR_
+     CALL leer_car_con_eco
+   
    CALL sal_a_dos
    
    RET
