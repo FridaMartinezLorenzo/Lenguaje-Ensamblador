@@ -1,6 +1,5 @@
-;Ejemplo para Ensamblar con Directivas Largas
-;programa ejemplo para masm
-;ES NECESARIO ALINEAR
+;Martinez Lorenzo Frida Ximena 402-B
+;PROGRAMA QUE IMPRIME CARACTER POR CARACTER
 
 ; DEFINICION SEGMENTO DE PILA
     PILA segment para stack 'stack'       
