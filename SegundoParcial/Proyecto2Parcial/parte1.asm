@@ -1,4 +1,3 @@
-
 ; DEFINICION SEGMENTO DE PILA
     PILA segment para stack 'stack'       
         DB 20 DUP (0)                   ; Define espacio en la pila
@@ -142,8 +141,8 @@ CODIGO SEGMENT PARA 'CODE'
       JMP FIN
    ERROR:
       MOV AL,0
-      LEA DX,ERROR_MESSAGE
-      CALL ESCRIBE_CADENA 
+      ;LEA DX,ERROR_MESSAGE
+      ;CALL ESCRIBE_CADENA 
    FIN:
       RET
    ASCII_BINARIO ENDP
@@ -226,9 +225,9 @@ CODIGO SEGMENT PARA 'CODE'
     ;CALL ESCRIBE_CADENA 
     JMP FIN_EVALUACION
    VERIFICA_D:
-   ;CALL COMAND_D
-   LEA DX,VALID
-   CALL ESCRIBE_CADENA 
+    ;CALL COMAND_D
+    LEA DX,VALID
+    CALL ESCRIBE_CADENA 
     JMP FIN_EVALUACION
    
    NO_VALID_COMAND:
@@ -259,8 +258,19 @@ CODIGO SEGMENT PARA 'CODE'
    JE CASO_SEGMENTO
    CALL GET_DIRECCION
    
-   JMP FIN_COMAND_E
+   INC SI
+   MOV BL,[SI]
+   CMP BL,0DH
+   ;JE CONTINUA_CON_DATOS
+   JE FIN_COMAND_E
    
+   CMP BL,20H
+   JNE SINTAX_ERROR_E
+   
+   ;CONTINUA_CON_DATOS:
+   CALL GET_DATOS
+   JE FIN_COMAND_E
+
    CASO_SEGMENTO:
     JMP FIN_COMAND_E
    
@@ -269,6 +279,8 @@ CODIGO SEGMENT PARA 'CODE'
     CALL ESCRIBE_CADENA 
    
    FIN_COMAND_E:
+   ;LEA DX,VALID
+    ;CALL ESCRIBE_CADENA
     POP CX
     POP BX 
     RET
@@ -290,6 +302,9 @@ CODIGO SEGMENT PARA 'CODE'
       MOV AH,00
       
     VEREDICTO_IS_A_NUM:
+      ;MOV DL,AL
+      ;CALL BINARIO_ASCII
+      ;CALL ESCRIBE_CAR_
       RET
    IS_A_NUM ENDP
    ;___________________________________________
@@ -342,12 +357,82 @@ CODIGO SEGMENT PARA 'CODE'
     RET
    GET_DIRECCION ENDP
    ;___________________________________________
-   EMPAQUETA_NIBLE PROC
-    CALL ASCII_BINARIO
+    EMPAQUETA_SINT PROC
+    PUSH CX                 ;shift left compromete al registro cx como contador
+    ;SE RECIBE EN AL EL PRIMER CARACTER
+    ;PROCESA EL 1ER CARACTER
     MOV CL,04
-    SHL AL,CL
+    SHL AL,CL               ;INSTRUCCION LOGICA DE CORRIMIENTO A LA IZQ
+    MOV CH,AL               ;ALMACENANDO EL VALOR DE AL A UN REGISTRO AUX
+    INC SI
+    MOV BL,[SI] ;TOMAMOS EL SIGUEINTE CARACTER
+    CALL IS_A_NUM           ;PROCESA EL 2O. CARACTER
+    ADD AL,CH               ;la subrutina empaqueta deja la suma en al
+    POP CX 
     RET
-   EMPAQUETA_NIBLE ENDP
+    EMPAQUETA_SINT ENDP
    ;___________________________________________
+   GET_DATOS PROC
+     PUSH CX
+     ;PUSH BX
+     LEA DI,CONTENIDO
+     
+    SIG_DATO:
+     MOV BL,[SI]
+     CMP BL,0DH
+     JE FIN_GET_DATOS
+     CMP BL,20H ;TIENE QUE EXISTIR UN ESPACIO
+     JNE SINTAX_ERROR_DATOS
+     INC SI
+     MOV BL,[SI]
+     
+     
+     CALL IS_A_NUM
+     CMP AH,00
+     JE SINTAX_ERROR_DATOS
+     CALL EMPAQUETA_SINT ;EL DATO COMPLETO QUEDA EN AL
+     MOV BL,AL
+     CALL DESEMPAQUETA_Y_GUARDA  
+     INC SI
+     JMP SIG_DATO
+    
+     
+     JMP FIN_GET_DATOS
+     
+    SINTAX_ERROR_DATOS:
+        LEA DX,ERROR_MESSAGE
+        CALL ESCRIBE_CADENA
+
+    FIN_GET_DATOS:
+     LEA DX,CONTENIDO
+     CALL ESCRIBE_CADENA
+    POP CX 
+    RET
+   GET_DATOS ENDP
+   ;___________________________________________
+   DESEMPAQUETA_Y_GUARDA PROC
+   PUSH DX
+   PUSH CX
+   MOV DL,BL
+   MOV DH,DL ; GUARDANDO EL VALOR ORIGINAL DE DH
+   MOV CL,4
+   SHR DL,CL ; CUATRO CORRIMIENTOS A LA DERECHA
+   CALL BINARIO_ASCII
+   MOV [DI],DL
+   INC DI
+   MOV DL,DH
+   AND DL,0FH ;RECUPERANDO EL DATO DE DH
+   CALL BINARIO_ASCII  ;EL DATO SE QUEDA EN DL
+   MOV [DI],DL
+   INC DI
+   MOV CH,20H
+   MOV [DI],CH; GUARDAMOS UN ESPACIO
+   INC DI
+   POP CX
+   POP DX
+   RET
+   DESEMPAQUETA_Y_GUARDA ENDP
+   ;_____________________________________________________________________________
+
 CODIGO ENDS                 ;Fin segemento de codigo
 END MAIN 
