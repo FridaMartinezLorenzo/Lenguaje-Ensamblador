@@ -12,7 +12,8 @@ DATOS SEGMENT PARA 'DATA'
     NUM1 DB ?                     ;Se planea guardar el dato
     CONTENIDO DB 220 DUP ("$"),"$" ;Aqui guardaremos datos
     COMANDO DB 40 DUP ("$"),"$"
-    ERROR_MESSAGE DB "ERROR"
+    ERROR_MESSAGE DB "___ERROR__$"
+    Valid DB "Correct comand$"
 DATOS ENDS
 
 
@@ -112,27 +113,42 @@ CODIGO SEGMENT PARA 'CODE'
     ASCII_BINARIO PROC ;EL DATO SE GUARDA EN AL
     CMP AL,30H
     JL ERROR
+    CMP AL,61H
+    JG LETRAMINUS
     CMP AL,39H
-    JG LETRA
+    JG LETRAMAYUS
     SUB AL,30H ;RESTAR 30 QUE ES EL 0
     JMP FIN
-   LETRA:
+    LETRAMAYUS:
       CMP AL,41H
       JL ERROR
+      CMP AL,53H
+      JE FIN
       CMP AL,46H
       JG ERROR
-      SUB AL,37H ; RESTAR 37 QUE ES EL VALOR DE "A"
+      SUB AL,37H ; RESTAR 37 PARA LLEGAR AL VALOR DE "A" QUE ES 10D
+      JMP FIN
+    LETRAMINUS:
+      CMP AL,61H
+      JL ERROR
+      CMP AL,73H
+      JE FIN
+      CMP AL,66H
+      JG ERROR
+      SUB AL,57H ; RESTAR 37 PARA LLEGAR AL VALOR DE "A" QUE ES 10D
       JMP FIN
    ERROR:
       MOV AL,0
+      LEA DX,ERROR_MESSAGE
+      CALL ESCRIBE_CADENA 
    FIN:
       RET
    ASCII_BINARIO ENDP
    
    
    BINARIO_ASCII PROC
-    CMP DL,9H
-    JG SUMA37
+    CMP DL,9H  
+    JG SUMA37 ;Porque es un numero
     ADD DL,30H
     JMP DESENLACE
    SUMA37:
@@ -140,7 +156,7 @@ CODIGO SEGMENT PARA 'CODE'
    DESENLACE: 
      RET
    BINARIO_ASCII ENDP
-   
+ ;_________________________________________________________________________________
    EMPAQUETA PROC
     PUSH CX                 ;shift left compromete al registro cx como contador
     CALL LEER_CAR_CON_ECO
@@ -154,7 +170,7 @@ CODIGO SEGMENT PARA 'CODE'
     POP CX
     RET
    EMPAQUETA ENDP
-   
+  
    
    DESEMPAQUETA PROC
    PUSH DX
@@ -173,26 +189,38 @@ CODIGO SEGMENT PARA 'CODE'
    RET
    DESEMPAQUETA ENDP
    
+;________________________________________________________________________________   
    EVALUACION_COMANDO PROC
    PUSH BX
    PUSH DX
    LEA SI,COMANDO
    MOV BL,[SI]
+   MOV AL,BL
+   CALL ASCII_BINARIO
+   MOV DL,AL
+   CALL BINARIO_ASCII
+   CALL ESCRIBE_CAR_
+   MOV BL,dL
+   JMP CONTINUA_EVAL
+   
+
+   CONTINUA_EVAL:
    CMP BL,"E"
    JE  VERIFICA_E
-   CMP BL,"e"
-   JE VERIFICA_E
    CMP BL,"D"
-   JE VERIFICA_D
-   CMP BL,"d"
    JE VERIFICA_D
    JMP NO_VALID_COMAND ;Considerar si reescribiremos se?alando donde esta el error
    
+   
    VERIFICA_E:
    ;CALL COMAND_E
+   LEA DX,VALID
+   CALL ESCRIBE_CADENA 
     JMP FIN_EVALUACION
    VERIFICA_D:
    ;CALL COMAND_D
+   LEA DX,VALID
+   CALL ESCRIBE_CADENA 
     JMP FIN_EVALUACION
    
    NO_VALID_COMAND:
@@ -205,42 +233,8 @@ CODIGO SEGMENT PARA 'CODE'
    RET 
    EVALUACION_COMANDO ENDP
    
-   
-   COMAND_E PROC
-   PUSH BX 
-   INC SI
-   MOV BL,[SI]
-   CMP BL,0DH
-   ;JNE SINTAX_ERROR_E
-   INC SI ;1000
-   MOV BH,[SI]
-   MOV BL,[SI]
-   ;CALL IS_A_DIRECTION?
-   CMP AL,1 ;lo es   
-   ;JE DEFINE_TYPE
-   ;VERIFICAR SI ES UN SEGMENTO DE MEMORIA
-   CALL EMPAQUETA_MODIFICADO
-   ;CALL DEFINE_SEGMENT_TYPE
-   
-       
-   POP BX 
-   COMAND_E ENDP
-   
-   EMPAQUETA_MODIFICADO PROC
-   PUSH CX
-    MOV AL,BL
-    CALL ASCII_BINARIO      ;PROCESA EL 1ER CARACTER
-    MOV CL,04
-    SHL AL,CL               ;INSTRUCCION LOGICA DE CORRIMIENTO A LA IZQ
-    MOV CH,AL               ;ALMACENANDO EL VALOR DE AL A UN REGISTRO AUX
-       ;LEER L SEGUNDO CAR
-    CALL ASCII_BINARIO      ;PROCESA EL 2O. CARACTER
-    ADD AL,CH               ;la subrutina empaqueta deja la suma en al
-   POP CX
-   EMPAQUETA_MODIFICADO ENDP
-   
-   COMAND_D PROC
-   
-   COMAND_D ENDP
+  ;________________________________________________
+
+  
 CODIGO ENDS                 ;Fin segemento de codigo
 END MAIN 
