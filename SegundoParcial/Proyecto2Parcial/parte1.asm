@@ -12,6 +12,9 @@ DATOS SEGMENT PARA 'DATA'
     NUM1 DB ?                     ;Se planea guardar el dato
     CONTENIDO DB 220 DUP ("$"),"$" ;Aqui guardaremos datos
     COMANDO DB 40 DUP ("$"),"$"
+    
+    DIRECCION_H DB ?
+    DIRECCION_L DB ?
     ERROR_MESSAGE DB "___ERROR__$"
     Valid DB "Correct comand$"
 DATOS ENDS
@@ -189,22 +192,27 @@ CODIGO SEGMENT PARA 'CODE'
    RET
    DESEMPAQUETA ENDP
    
+   TRADUCIR PROC
+    PUSH AX
+    PUSH DX
+    MOV AL,BL ;DATO DE ENTRADA EN BL
+    CALL ASCII_BINARIO
+    MOV DL,AL
+    CALL BINARIO_ASCII
+    ;CALL ESCRIBE_CAR_
+    MOV BL,DL ;DATO FINAL EN BL
+    POP DX
+    POP AX
+    RET
+   TRADUCIR ENDP
 ;________________________________________________________________________________   
    EVALUACION_COMANDO PROC
    PUSH BX
    PUSH DX
    LEA SI,COMANDO
    MOV BL,[SI]
-   MOV AL,BL
-   CALL ASCII_BINARIO
-   MOV DL,AL
-   CALL BINARIO_ASCII
-   CALL ESCRIBE_CAR_
-   MOV BL,dL
-   JMP CONTINUA_EVAL
+   CALL TRADUCIR ;CONVIERTE A MAYUS SI FUESE NECESARIO
    
-
-   CONTINUA_EVAL:
    CMP BL,"E"
    JE  VERIFICA_E
    CMP BL,"D"
@@ -213,9 +221,9 @@ CODIGO SEGMENT PARA 'CODE'
    
    
    VERIFICA_E:
-   ;CALL COMAND_E
-   LEA DX,VALID
-   CALL ESCRIBE_CADENA 
+     CALL COMAND_E
+    ;LEA DX,VALID
+    ;CALL ESCRIBE_CADENA 
     JMP FIN_EVALUACION
    VERIFICA_D:
    ;CALL COMAND_D
@@ -235,6 +243,111 @@ CODIGO SEGMENT PARA 'CODE'
    
   ;________________________________________________
 
-  
+   COMAND_E PROC
+   PUSH BX
+   PUSH CX
+   MOV BX,0 
+   INC SI
+   MOV BL,[SI]
+   CMP BL,20H ;TIENE QUE EXISTIR UN ENTER
+   JNE SINTAX_ERROR_E
+   ;DEFINIMOS EL CASO 
+   INC SI
+   MOV BL,[SI]
+   CALL IS_A_NUM 
+   CMP AH,0 ;BANDERA APAGADA
+   JE CASO_SEGMENTO
+   CALL GET_DIRECCION
+   
+   JMP FIN_COMAND_E
+   
+   CASO_SEGMENTO:
+    JMP FIN_COMAND_E
+   
+   SINTAX_ERROR_E:
+    LEA DX,ERROR_MESSAGE
+    CALL ESCRIBE_CADENA 
+   
+   FIN_COMAND_E:
+    POP CX
+    POP BX 
+    RET
+   COMAND_E ENDP
+   ;___________________________________________
+   
+   IS_A_NUM PROC
+    MOV AL,BL
+    CALL ASCII_BINARIO
+    CMP AL,00H
+    JL NOT_A_NUM
+    CMP AL,09H
+    JG NOT_A_NUM
+    
+    MOV AH,01
+    JMP VEREDICTO_IS_A_NUM
+    
+    NOT_A_NUM:
+      MOV AH,00
+      
+    VEREDICTO_IS_A_NUM:
+      RET
+   IS_A_NUM ENDP
+   ;___________________________________________
+   GET_DIRECCION PROC
+    PUSH CX
+    ;PARTE ALTA DIRECCION
+    ;AL SIGUE TENIENDO EL DATO RESULTANTE DE ASCII_BINARIO
+    MOV CX,0
+    MOV CL,04
+    SHL AL,CL
+    MOV CH,AL  ; Respaldamos
+    INC SI
+    MOV BL,[SI]
+    CALL IS_A_NUM
+    CMP AH,00H
+    JE ERROR_EN_DIRECCION
+    ADD CH,AL
+    MOV DIRECCION_H,CH
+    
+    ;PARTE BAJA
+    INC SI
+    MOV BL,[SI]
+    CALL IS_A_NUM
+    CMP AH,00H
+    JE ERROR_EN_DIRECCION
+    MOV CL,04
+    SHL AL,CL
+    MOV CH,AL  ; RespaldamoS
+    INC SI
+    MOV BL,[SI]
+    CALL IS_A_NUM
+    CMP AH,00H
+    JE ERROR_EN_DIRECCION
+    ADD CH,AL
+    MOV DIRECCION_L,CH
+        
+    ;IMPRIMIR DIRECCION
+    ;MOV DL,DIRECCION_H
+    ;CALL DESEMPAQUETA
+    ;MOV DL,DIRECCION_L
+    ;CALL DESEMPAQUETA
+    JMP FIN_DIRECCION
+    
+    ERROR_EN_DIRECCION:
+          LEA DX,ERROR_MESSAGE
+          CALL ESCRIBE_CADENA 
+          
+    FIN_DIRECCION:
+    POP CX
+    RET
+   GET_DIRECCION ENDP
+   ;___________________________________________
+   EMPAQUETA_NIBLE PROC
+    CALL ASCII_BINARIO
+    MOV CL,04
+    SHL AL,CL
+    RET
+   EMPAQUETA_NIBLE ENDP
+   ;___________________________________________
 CODIGO ENDS                 ;Fin segemento de codigo
 END MAIN 
