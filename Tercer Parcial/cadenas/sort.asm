@@ -1,0 +1,94 @@
+; ORDENAMIENTO SORT EN UN ARREGLO DE NUMEROS SIN SIGNO
+; Definicion de stack
+.MODEL small
+.STACK 100
+;DEFINICION DE AREAS DE TRABAJO
+.DATA
+TABLE1 DB 132,198,18,17,16,15,14,13,12,11
+DB 10,9,8,7,6,5,45,3,210,1
+TOTAL DW 20
+CADENA DB 20 dup (" ")
+SALTA db 13, 10,'$'
+.CODE
+PRINCI PROC FAR
+;PROTOCOLO
+push ds
+sub ax,ax
+push ax
+MOV AX,@DATA
+MOV DS,AX
+;INICIA PROGRAMA
+CALL RECORRE
+MOV SI, 0
+MOV CX, TOTAL
+SUB CX,1
+DO1:
+MOV DI,SI
+INC DI
+DO2:
+
+MOV DL, TABLE1[SI]
+MOV BL, TABLE1[DI]
+CMP DL,BL
+JNAE IIF1
+MOV TABLE1[SI],BL
+MOV TABLE1[DI],DL
+
+IIF1:
+
+INC DI
+CMP DI,TOTAL
+JNAE DO2
+INC SI
+CMP SI, CX
+JNAE DO1
+CALL RECORRE
+RET
+
+PRINCI ENDP
+
+RECORRE PROC
+LEA SI,TABLE1
+MOV CX, TOTAL
+REGRESA: MOV DL, TABLE1[SI]
+CALL DESEMPAQUETA
+INC SI
+LOOP REGRESA
+RET
+RECORRE ENDP
+
+Desempaqueta PROC
+Push dx
+Push cx
+Mov dh,dl ; Guardando el valor original en DH
+Mov cl,4
+Shr dl,cl ; Cuatro corrimientos a la derecha
+Call Binario_Ascii
+Call Escribe
+Mov dl,dh ; Recuperando el dato de DH
+And dl,0Fh ; Aplicando mascara
+Call Binario_ascii
+Call Escribe
+Pop cx
+Pop dx
+RET
+Desempaqueta ENDP
+
+escribe PROC
+PUSH AX
+MOV AH,02 ; Caracter a desplegar almacenado en dl
+INT 21h
+POP AX
+RET
+escribe ENDP
+
+Binario_Ascii PROC
+CMP DL,9h
+JG SUMA37
+ADD DL,30h
+JMP FIN
+SUMA37: ADD DL,37h
+FIN : RET
+Binario_Ascii ENDP
+
+END PRINCI
