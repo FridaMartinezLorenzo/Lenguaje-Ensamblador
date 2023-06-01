@@ -1,0 +1,329 @@
+INICIO_DC MACRO
+PUSH DS
+SUB AX,AX
+PUSH AX
+MOV AX,@data
+MOV DS,AX 
+ENDM
+;_________________________________________________________________________
+INICIO_DL MACRO
+PUSH DS 
+   SUB AX,AX
+   PUSH AX
+   MOV AX,SEG DATOS 
+   MOV DS,AX
+ENDM
+;_________________________________________________________________________
+LEE MACRO
+    push ax
+    mov ah,01h
+    int 21h
+    pop ax
+ENDM
+;_________________________________________________________________________
+ESCRIBE_CADENA MACRO CAD
+	PUSH DX
+	PUSH AX
+	LEA DX,CAD
+	MOV AH,09H
+	INT 21H
+	POP AX
+	POP DX
+ENDM
+;_________________________________________________________________________
+
+LEER_ECO MACRO
+	MOV AH,01
+	INT 21H
+ENDM
+;__________________________________________________________________________
+
+ESCRIBE_CAR MACRO DATO
+	PUSH DX
+	PUSH AX
+	MOV DL,DATO
+	MOV AH,02
+	INT 21H
+	POP AX
+	POP DX
+ENDM
+;_________________________________________________________________________
+
+SALTAR MACRO
+	ESCRIBE_CAR 0AH
+	ESCRIBE_CAR 0DH
+ENDM
+;_________________________________________________________________________
+
+EXIT_PROGRAMA MACRO 
+	MOV AH,4CH
+	INT 21H
+ENDM
+
+;__________________________________________________________________________
+
+ASCII_BINARIO MACRO DATO
+    LOCAL ERROR
+    LOCAL LETRAMINUS
+    LOCAL LETRAMAYUS
+    LOCAL FIN
+
+    CMP AL,30H
+    JL ERROR
+    CMP AL,60H
+    JG LETRAMINUS
+    CMP AL,39H
+    JG LETRAMAYUS
+    SUB AL,30H ;RESTAR 30 QUE ES EL 0
+    JMP FIN
+    LETRAMAYUS:
+      CMP AL,41H
+      JL ERROR
+      CMP AL,46H
+      JG ERROR
+      SUB AL,37H ; RESTAR 37 PARA LLEGAR AL VALOR DE "A" QUE ES 10D
+      JMP FIN
+    LETRAMINUS:
+      CMP AL,61H
+      JL ERROR
+      CMP AL,66H
+      JG ERROR
+      SUB AL,57H ; RESTAR 37 PARA LLEGAR AL VALOR DE "A" QUE ES 10D
+      JMP FIN
+   ERROR:
+   	MOV AL,00
+   FIN:
+ENDM
+;_______________________________________________________________________
+
+BINARIO_ASCII MACRO
+    LOCAL FIN
+    LOCAL SUMA37
+    CMP DL,9H  
+    JG SUMA37 ;Porque es un numero
+    ADD DL,30H
+    JMP FIN
+   SUMA37:
+     ADD DL,37H ;el dato se va a quedar en DL
+   FIN: 
+ENDM
+
+;_________________________________________________________________________
+ EMPAQUETA MACRO
+    PUSH CX                 ;shift left compromete al registro cx como contador
+    LEER_ECO
+    ASCII_BINARIO AL	    ;PROCESA EL 1ER CARACTER
+    MOV CL,04
+    SHL AL,CL               ;INSTRUCCION LOGICA DE CORRIMIENTO A LA IZQ
+    MOV CH,AL               ;ALMACENANDO EL VALOR DE AL A UN REGISTRO AUX
+    LEER_ECO		    ;LEER L SEGUNDO CAR
+    ASCII_BINARIO AL     	    ;PROCESA EL 2O. CARACTER
+    ADD AL,CH               ;la subrutina empaqueta deja la suma en al
+    POP CX
+ENDM
+;________________________________________________________________________
+
+DESEMPAQUETA MACRO DATO
+   PUSH DX
+   PUSH CX
+   MOV DL,DATO 		;GUARDAMOS EL DATO RECIBIDO
+   MOV DH,DL 		;GUARDANDO EL VALOR ORIGINAL DE DH
+   MOV CL,4
+   SHR DL,CL 		;CUATRO CORRIMIENTOS A LA DERECHA
+   BINARIO_ASCII
+   ESCRIBE_CAR DL
+   MOV DL,DH
+   AND DL,0FH 		;RECUPERANDO EL DATO DE DH
+   BINARIO_ASCII
+   ESCRIBE_CAR DL
+   POP CX
+   POP DX
+
+ENDM
+;__________________________________________________________________________
+LEERCADENA MACRO ZONA_MEM
+PUSH DX
+PUSH AX
+LEA DX,ZONA_MEM
+MOV AH,0AH
+INT 21H
+POP AX
+POP DX
+ENDM
+;__________________________________________________________________________
+
+   LIMPIAR_PANTALLA MACRO COLORES ;Color letra, color fondo un byte
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    MOV AX,0600h
+    MOV BH,COLORES    
+    MOV CX,0000H
+    MOV DX,184FH
+    INT 10h
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+  ENDM
+    
+;_________________________________________________________________________
+
+    POSICIONA_CURSOR MACRO RENGLON, COLUMNA
+        PUSH AX
+        PUSH BX
+        PUSH DX
+        MOV AH,02h
+        MOV BH,0
+        MOV DH, RENGLON
+        MOV DL, COLUMNA
+        INT 10H
+        POP DX
+        POP BX
+        POP AX
+     ENDM
+;_________________________________________________________________________
+
+CLEAR MACRO
+	LIMPIAR_PANTALLA 07H
+	POSICIONA_CURSOR 01 01
+ENDM
+
+;_____________________________________________________________________
+MOSTRAR_BASE MACRO CADENA
+LOCAL SIGUIENTE
+LOCAL VERIFICA
+LOCAL ES_UN_ESPACIO
+LOCAL FINAL
+   PUSH SI
+   PUSH AX
+   PUSH BX
+      LIMPIAR_PANTALLA 50H
+      POSICIONA_CURSOR 2,15
+      ESCRIBE_CADENA GAME1
+      LEA SI,CADENA+1 ;OBTENEMOS LA LONGITUD
+      MOV CH,0
+      MOV CL,[SI]
+      POSICIONA_CURSOR 10,40
+   SIGUIENTE:
+      INC SI
+      MOV AL,[SI]
+      CMP AL,20H ;SI ES UN ESPACIO 
+      JE ES_UN_ESPACIO
+      ESCRIBE_CAR 5FH
+      ESCRIBE_CAR 20H
+      DEC CX
+      VERIFICA:
+         CMP CX,0
+         JE FINAL
+      JMP SIGUIENTE
+
+   ES_UN_ESPACIO:
+      DEC CX
+      ESCRIBE_CAR AL ;DIBUJAMOS EL ESPACIO
+      ESCRIBE_CAR AL ;PARA QUE SE NOTE DOS
+      JMP VERIFICA
+   FINAL:
+   POP BX   
+   POP AX  
+   POP SI
+ENDM
+
+
+DESARROLLO MACRO CAD, CADAUX
+LOCAL FIN_BUSQUEDA
+LOCAL FIN
+LOCAL ES_UN_ESPACIO
+LOCAL ES_UN_ESPACIO1
+LOCAL SIGUIENTE
+LOCAL REGRESA1
+LOCAL REGRESA2
+LOCAL VERIFICA
+LOCAL OTRO_CARACTER
+LOCAL COPY1
+LOCAL CONTINUA
+LOCAL COLOCANDO_FIN
+PUSH SI
+PUSH DI
+PUSH CX
+PUSH BX
+   LEA DI,CADAUX+2  
+   LEA SI,CAD+1
+   MOV AL,[SI]
+   ;MOV [DI],AL
+   
+   COLOCANDO_FIN:
+      INC DI
+      DEC AL
+      CMP AL,0
+      JNE COLOCANDO_FIN
+      MOV AH,'$'
+      MOV [DI],AH
+
+    ;COMENZAMOS A LEER LO QUE DICE USUARIO
+    OTRO_CARACTER:
+      ;LIMPIAMOS LA PARTE BAJA DE LA LIMPIAR_PANTALLA
+      POSICIONA_CURSOR 9,40
+      LEA SI,CADAUX
+      REGRESA2:
+      MOV BL,[SI]
+      CMP BL,'$'
+      JE CONTINUA
+      ESCRIBE_CAR BL
+      ESCRIBE_CAR 20H
+      CMP BL,20H
+      INC SI
+      JE ES_UN_ESPACIO1
+      JMP REGRESA2
+
+      CONTINUA:
+      POSICIONA_CURSOR 20,20
+      ESCRIBE_CADENA MSG2
+      LEER_ECO ;
+      CMP AL,20H 
+      JE ES_UN_ESPACIO
+      
+      ;BUSCAR Y COPIAR
+
+      LEA DI,CAD+2
+      LEA SI,CADAUX
+
+      REGRESA1:
+      MOV AH,[DI]
+      CMP AH,AL
+      JE COPY1
+      INC DI
+      INC SI
+      MOV AH,[DI]
+      CMP AH,'$'
+      JE OTRO_CARACTER
+      JMP REGRESA1
+      
+      COPY1:
+         MOV [SI],AL
+         INC DI
+         INC SI
+         MOV AH,[DI]
+         CMP AH,'$'
+         JE OTRO_CARACTER
+         JMP REGRESA1
+
+      ES_UN_ESPACIO:
+         JMP OTRO_CARACTER
+
+      ES_UN_ESPACIO1: ;PARA IMPRIMIR
+         ESCRIBE_CAR 20H
+         ESCRIBE_CAR 20H
+      JMP REGRESA2
+         
+EXITO:         
+FIN:
+SALTAR
+;ESCRIBE_CADENA CADAUX+2
+LEE
+POP BX
+POP CX
+POP DI
+POP SI
+ENDM
