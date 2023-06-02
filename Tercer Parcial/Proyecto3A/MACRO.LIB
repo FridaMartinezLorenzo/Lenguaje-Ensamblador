@@ -246,6 +246,7 @@ LOCAL OTRO_CARACTER
 LOCAL COPY1
 LOCAL CONTINUA
 LOCAL COLOCANDO_FIN
+LOCAL MARCAR_INTENTO
 PUSH SI
 PUSH DI
 PUSH CX
@@ -289,14 +290,12 @@ PUSH BX
       JMP REGRESA2
 
       CONTINUA:
-      POSICIONA_CURSOR 20,20
+      POSICIONA_CURSOR 20,40
       ESCRIBE_CADENA MSG2
       LEER_ECO ;
       CMP AL,20H 
-      JE ES_UN_ESPACIO ;SE NECESITA DEPRECIAR EL ESPACIO
-      
-      ;BUSCAR Y COPIAR
-      ;bh será la bandera de que se encontró al menos una incidencia
+      JE ES_UN_ESPACIO ;SE NECESITA DEPRECIAR EL ESPACIO 
+      ;BUSCAR Y COPIAR ;bh será la bandera de que se encontró al menos una incidencia
       MOV BH,0
       LEA DI,CAD+2
       LEA SI,CADAUX
@@ -329,8 +328,7 @@ PUSH BX
          ESCRIBE_CAR 20H
       JMP REGRESA2
 
-     
-EXITO:         
+              
 FIN:
 SALTAR
 ;ESCRIBE_CADENA CADAUX+2
