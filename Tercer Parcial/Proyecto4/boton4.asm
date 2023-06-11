@@ -16,12 +16,32 @@ INCLUDE MACRO.LIB
     COLOR DB 05H
      
     MODE DB ? 
+    TIEMPO1 DW 0
+    TIEMPO2 DW 0
+    
 
+    ENMASCARAR_PUNTERO   dw 1111110000111111b 
+            dw 1111110000111111b              
+            dw 1111110000111111b
+            dw 1111110000111111b
+            dw 1111110000111111b
+            dw 1111110000111111b
+            dw 0000000000000000b
+            dw 0000000000000000b
+            dw 0000000000000000b
+            dw 0000000000000000b
+            dw 1111110000111111b              
+            dw 1111110000111111b
+            dw 1111110000111111b
+            dw 1111110000111111b
+            dw 1111110000111111b
+            dw 1111110000111111b
+            
 .CODE
 MAIN PROC
     INICIO_DC
     ;procedemos a trabajar en pixeles
-    
+    MOV ES,AX
     mov MODE, 12h 
     CALL MODOVIDEO
     
@@ -42,9 +62,18 @@ MAIN PROC
     ADD FINR,AL
     
     CALL DRAW_RECTANGLE
+    
+    I_MOUSE ;INICIALIZAMOS 
+    M_MOUSE ;MOSTRAR EL PUNTERO
+    
 
     POSICIONA_CURSOR 6,19
     ESCRIBE_CADENA MSG
+
+    CALL DOBLE_CLICK
+    
+    CALL ENMASCARAR_CURSOR 
+    M_MOUSE
     POSICIONA_CURSOR 20,5
     EXIT_PROGRAMA
     RET
@@ -71,7 +100,8 @@ DRAW_RECTANGLE PROC
         INC DL
         CMP DL,FINR
         JNE FILA
-     
+        
+        
    POP DX
    POP CX
    POP BX     
@@ -102,5 +132,57 @@ MODOVIDEO PROC
 
 RET
 MODOVIDEO ENDP
+
+DOBLE_CLICK PROC NEAR
+SAL3:
+    MOV AX, 03h ; Obtener estado de los botones del mouse
+    INT 33h
+    CMP BX, 01h ; Bot?n izquierdo presionado
+    JNE SAL3
+
+    ;GUARDAMOS INFO DEL CLICK
+        MOV AX, 02H ; Inicializar temporizador del sistema
+        INT 1Ah ; Leer el temporizador del sistema en CX:DX
+        MOV tiempo1, DX ; Guardar el valor del temporizador del primer clic
+    
+
+    WAIT_SECOND_CLICK:
+        MOV AX,02H
+        INT 1AH
+        
+        SUB DX,TIEMPO1
+        CMP DL,03H             ;Ignoramos los segundo y hablamos en terminos de microsegundos
+        JB WAIT_SECOND_CLICK ; Si no ha pasado el tiempo suficiente, esperar mas
+
+        
+        ;segundo click
+        MOV AX, 03h ; Obtener estado de los botones del mouse
+        INT 33h
+        CMP BX, 01h ; Bot?n izquierdo presionado
+        JNE SAL3
+        MOV AX, 0 ; Reiniciar temporizador del sistema
+        INT 1Ah ; Leer el temporizador del sistema en DX:AX
+        
+        MOV AX,TIEMPO1
+        MOV DX,TIEMPO2
+        CMP AX,DX
+        JE SAL3
+        ; Si llegamos a este punto, se ha detectado un doble clic
+        ESCRIBE_CADENA MSG ;Letrero para probar
+        JMP SAL1
+
+SAL1:
+    RET
+DOBLE_CLICK ENDP
+
+ENMASCARAR_CURSOR PROC
+    mov ax,09h ;con la forma personalizada 
+    xor bx,bx
+    xor cx,cx
+    lea dx,enmascarar_puntero
+    INT 33H
+    ret
+ENMASCARAR_CURSOR ENDP
+
 
 END MAIN
