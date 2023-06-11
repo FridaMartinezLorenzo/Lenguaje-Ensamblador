@@ -1,0 +1,105 @@
+;______________________________________________________________________
+;INICIO DIRECTIVA CORTA
+
+INICIO_DC MACRO  
+PUSH DS
+SUB AX,AX
+PUSH AX
+MOV AX,@data
+MOV DS,AX 
+ENDM
+
+;_________________________________________________________________________
+;INICIALIZAR EL MODO TEXTO
+
+INITTEXT MACRO
+PUSH AX
+MOV AH,00H   
+MOV AL,03H   
+INT 10H
+POP AX
+ENDM
+;_____________________________________________________________________
+PRINTF MACRO
+PUSH AX
+MOV AH,09H  ;Nos permite escribir una cadena la cual esta apuntada por DX
+INT 21H
+POP AX
+ENDM
+;_____________________________________________________________________
+DESPLIEGA MACRO DATO
+; Servicio 40h :manejador de archivo para despliegue en pantalla
+MOV AH,40H
+MOV BX,01 
+MOV CX,11 
+LEA DX,DATO 
+INT 21H
+ENDM
+;_____________________________________________________________________
+EXIT_PROGRAMA MACRO 
+	MOV AH,4CH
+	INT 21H
+ENDM
+;_____________________________________________________________________
+;INICIALIZAR EL MOUSE SERVICIO 00H
+
+I_MOUSE MACRO
+MOV AX,00 
+INT 33H 
+ENDM
+
+;_____________________________________________________________________
+;VISUALIZAR EL PUNTERO DEL MOUSE SERVICIO 01H
+
+M_MOUSE MACRO
+PUSH AX
+MOV AX,01H ;Permite visualizar el puntero del Mouse
+INT 33H   
+POP AX
+ENDM
+
+;_____________________________________________________________________
+;OCULTAR EL PUNTERO DEL MOUSE SERVICIO 02H
+
+F_MOUSE MACRO
+PUSH AX
+MOV AX,02H ;oculta el puntero del mouse
+INT 33H 
+POP AX
+ENDM
+
+;______________________________________________________________________
+TEXTBACKGROUND MACRO FL,INI,FIN
+PUSH AX
+PUSH BX
+PUSH CX
+PUSH DX
+MOV AX,0600H ;SERVICIO EN AH, AL LINEAS A RECORRER 00 PANT COMPLETA
+MOV BH,FL   ;FONDO Y LETRAS
+MOV CX,INI   ;REN:COL INI
+MOV DX,FIN   ;REN:COL FIN
+INT 10H
+POP DX
+POP CX
+POP BX
+POP AX
+ENDM
+;_________________________________________________________________________
+
+GOTOXY MACRO REN_COL
+PUSH AX
+PUSH BX
+PUSH DX
+MOV AH,02H  ;POSICIONAR CURSOR
+MOV BH,00H  ;PAGINA O PANTALLA
+MOV DX,REN_COL  ;REN Y COL
+INT 10H
+POP DX
+POP BX
+POP AX
+ENDM
+
+
+
+
+
