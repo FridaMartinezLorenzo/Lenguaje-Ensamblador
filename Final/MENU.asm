@@ -1,0 +1,326 @@
+INCLUDE MACRO.LIB
+.model small
+
+.stack 120
+
+
+.data
+  ;TEXTO PARA LOS BOTONES DEL MENU
+    BTN1 DB "JUGAR$"
+    BTN2 DB "RANKING$"
+    BTN3 DB "SALIR$"
+  ;MENSAJES DE ERROR  
+  MOUSE_ERROR DB "ERROR EN EL MOUSE$"
+  ;MENSAJES DEL JUEGO
+  ENCABEZADO DB "JUEGO$"
+  R DB "RANKING$";
+    ;DATOS DE LA BASE DEL BOTON (SE REPETIR? ESTE PATRON EN LOS TRES) 
+    ALTURA DW 0 
+    ANCHO DW 0
+    INICIOC DW 0
+    INICIOR DW 0
+    FINC DW 0
+    FINR DW 0
+    COLOR DB 05H
+     
+    ;VARIABLE PARA EL MODO GRAFICO
+    MODE DB ? 
+    
+    ;COORDENADAS DEL CLICK
+    X1 DW 0 ;HORIZONTAL
+    Y1 DW 0 ;VERTICAL
+    
+    ;BANDERAS DE VALIDACION 
+    B1 DB 0
+    B2 DB 0
+    B3 DW 0
+    
+    
+.code
+
+PRINCI PROC FAR
+    INICIO_DC
+    MOV ES,AX
+    MOV MODE, 12h 
+    CALL MODOVIDEO
+    
+    SET_BGD 156 ;EL QUINCEH ME GUSTA DE COLOR
+    LIMPIAR_PANTALLA 77H
+    ;CREAMOS LA BASE DER FORMULARIO
+    MOV COLOR,14H ;LADRILLITO BONITO
+    MOV ANCHO,300
+    MOV ALTURA,300
+    
+    MOV INICIOC,95H ;COLUMNA DE INICIA
+    MOV INICIOR,40H ;RENGLON DE INICIO
+
+    MOV AX,INICIOC
+    MOV FINC,AX
+    MOV AX,ANCHO
+    ADD FINC,AX
+    
+    MOV AX,INICIOR
+    MOV FINR,AX
+    MOV AX,ALTURA
+    ADD FINR,AX
+    
+    CALL DRAW_RECTANGLE
+    
+   ;DIBUJAMOS LOS BOTONES
+    MOV COLOR,146
+    MOV ANCHO, 200 ; Ancho del rectangulo
+    MOV ALTURA, 50 ; Altura del rectangulo
+    
+    MOV INICIOC,0C9H ;COLUMNA DE INICIA
+    MOV INICIOR,70H ;RENGLON DE INICIO
+  
+  MOV CX,3  
+  BOTONES_BASE:
+  
+    MOV AX,INICIOC
+    MOV FINC,AX
+    MOV AX,ANCHO
+    ADD FINC,AX
+    
+    MOV AX,INICIOR
+    MOV FINR,AX
+    MOV AX,ALTURA
+    ADD FINR,AX
+    
+    CALL DRAW_RECTANGLE
+    ADD INICIOR,50H
+    LOOP BOTONES_BASE
+
+    ;PROCEDEMOS A PONERLE EL TEXTO CORRESPONDIENTE AL BOTON
+    display_string BTN1,8,35,5,15
+    display_string BTN2,13,35,7,15
+    display_string BTN3,18,35,5,15
+    
+    ;COMENZAMOS A TRABAJAR CON EL MOUSE
+     CALL I_MOUSE
+     CMP AX,00
+     JE ERROR_M
+     CALL M_MOUSE
+     JMP ESPERAR_INST
+     
+      ERROR_M:
+        ESCRIBE_CADENA MOUSE_ERROR
+        ;SE DEBE PROGRAMAR PARA NO SALIRSE SINO QUE SE REINTENTE
+        JMP FIN_PROGRAMA_PRINCI
+     
+ESPERAR_INST:
+     CALL CLICK
+    ;SE LLAMARA A LA MACRO RASTREAR CLICK
+        ;EVALUAR SI ES BOTON1
+        MOV B1,0
+        MOV B2,0
+        MOV B3,0
+        MOV INICIOC,0C9H
+        MOV FINC,191H
+        MOV INICIOR,70H
+        MOV FINR,0A2H
+        MOV BL,1
+        CALL RASTREAR_CLICK
+        CMP B1,1
+        JE START_GAME 
+
+        ;EVALUAR BOTON2
+        MOV B1,0
+        MOV B2,0
+        MOV B3,0
+        MOV INICIOC,0C9H
+        MOV FINC,191H
+        MOV INICIOR,0C0H
+        MOV FINR,0F2H
+        MOV BL,2
+        CALL RASTREAR_CLICK  
+        CMP B2,1
+        JE SHOW_RANKING
+        
+        ;EVALUAR BOTON3
+        MOV B1,0
+        MOV B2,0
+        MOV B3,0
+        MOV INICIOC,0C9H
+        MOV FINC,191H
+        MOV INICIOR,110H
+        MOV FINR,132H
+        MOV BL,3
+        CALL RASTREAR_CLICK  
+        CMP B3,1
+        JE FIN_PROGRAMA_PRINCI
+        JMP ESPERAR_INST ;SE CICLA EL MENU HASTA EL USUARIO DECIDA
+   
+        
+        START_GAME:;;;;;;;;;;;JUEGO
+            LIMPIAR_PANTALLA 07H
+            ESCRIBE_CADENA ENCABEZADO    
+            JMP FIN_PROGRAMA_PRINCI
+        SHOW_RANKING:
+            LIMPIAR_PANTALLA 07H
+            ESCRIBE_CADENA R
+     JMP FIN_PROGRAMA_PRINCI
+     
+FIN_PROGRAMA_PRINCI:
+EXIT_PROGRAMA
+RET
+PRINCI ENDP
+
+DRAW_RECTANGLE PROC
+   PUSH BX
+   PUSH CX
+   PUSH DX
+           
+        MOV DX,INICIOR
+    FILA:
+        MOV CX,INICIOC
+        
+       OTRAC:
+        CALL PIXEL
+        INC CX
+        CMP CX,FINC
+        JNE OTRAC
+        
+        INC DX
+        CMP DX,FINR
+        JNE FILA
+        
+        
+   POP DX
+   POP CX
+   POP BX     
+
+   RET
+DRAW_RECTANGLE ENDP
+
+PIXEL PROC
+PUSH AX
+PUSH BX
+    MOV AH,0CH
+    MOV AL,COLOR
+    MOV BH,0
+    ;MOV CX,COL
+    ;MOV DX,REN
+    INT 10H
+POP BX
+POP AX
+RET
+PIXEL ENDP
+
+
+MODOVIDEO PROC
+    ; modo de video 
+    MOV AL,MODE
+    MOV AH,0
+    INT 10H
+RET
+MODOVIDEO ENDP
+
+;PROCESAMIENTO DEL CLICK
+CLICK PROC NEAR
+SAL3:
+    MOV AX, 03h ; Obtener estado de los botones del mouse
+    INT 33h
+    CMP BX, 01h ; Boton izquierdo presionado
+    JNE SAL3
+    ;GUARDAMOS COORDENADAS PORQUE SE HA DADO UN CLICK
+    MOV X1,CX
+    MOV Y1,DX
+    RET
+CLICK ENDP
+
+;______________________________________________________________________________
+RASTREAR_CLICK PROC 
+    MOV AX,X1
+
+    MOV CX,INICIOC
+    MOV DX,FINC
+    
+    COL:
+        CMP AX,CX
+        JE VALIDA2
+        INC CX
+        CMP CX,DX
+        JNE COL
+ 
+        JMP FIN_R ;NO COINCIDIO, FINALIZAMOS DE UNA VEZ
+      
+     VALIDA2:
+        MOV AX,Y1
+        MOV CX,INICIOR
+        MOV DX,FINR
+        REN:
+            CMP AX,CX
+            JE BANDERA
+            INC CX
+            CMP CX,DX
+            JNE REN
+        JMP FIN_R
+        
+     BANDERA:
+   ;EN BASE AL BOTON A EVALUAR RECIBIDO
+   MOV DH,1
+   ;EN BL VIENE EL NUMERO DEL BOTON
+   CMP BL,3
+   JE BBOTON3
+   CMP BL,2
+   JE BBOTON2
+   CMP BL,1
+      LEA SI,B1 
+      MOV [SI],DH
+      JMP FIN_R
+   BBOTON2:  
+      LEA SI,B2 
+      MOV [SI],DH
+      JMP FIN_R   
+   BBOTON3:
+    LEA SI,B3 
+    MOV [SI],DH
+  FIN_R:
+RET
+RASTREAR_CLICK ENDP 
+
+;______________________________________________________________________
+;FUNCIONES DEL MOUSE QUE ESTAN EN LA BIBLIOTECA
+;______________________________________________________________________
+
+
+;VISUALIZAR EL PUNTERO DEL MOUSE SERVICIO 01H
+
+M_MOUSE PROC
+PUSH AX
+MOV AX,01H ;Permite visualizar el puntero del Mouse
+INT 33H   
+POP AX
+RET
+M_MOUSE ENDP
+
+F_MOUSE PROC
+    PUSH AX
+    MOV AX,02H ;oculta el puntero del mouse
+    INT 33H 
+    POP AX
+RET
+F_MOUSE ENDP
+
+;INICIALIZAR EL MOUSE SERVICIO 00H
+
+I_MOUSE PROC
+MOV AX,00 
+INT 33H 
+RET
+I_MOUSE ENDP
+
+POSICIONA_CURSOR_P PROC
+    MOV AH,02h
+    MOV AL,0
+    MOV BX,0
+    ;MOV DH, RENGLON
+    ;MOV DL, COLUMNA
+    INT 10H
+    RET
+    POSICIONA_CURSOR_P ENDP
+;___________________________________________________________
+;__________________________________________________________
+
+END PRINCI
