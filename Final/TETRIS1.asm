@@ -54,6 +54,7 @@ block_boshche      dw 0
 box_medium         dw 100
 current_row        dw 0
 current_block      dw 0
+current_blockR     dw 0
 next_block         dw 0
 
 
@@ -71,9 +72,9 @@ next_horizontal        dw 71,76,430,440
                        dw 0,0,0,0
                        
               
-vertical               dw 51,56,285,295
-                       dw 56,61,285,295 
-                       dw 61,66,285,295
+vertical               dw 45,49,280,290
+                       dw 49,52,280,290 
+                       dw 52,56,280,290
                        dw 0,0,0,0
                        
                        
@@ -96,6 +97,17 @@ next_L_shape           dw 71,76,430,440
                        dw 65,70,430,440
 
 
+L_shape_izq1           dw 45,49,290,300
+                       dw 50,54,290,300
+                       dw 55,59,290,300
+                       dw 55,59,279,290 
+    
+                       
+next_L_shape_izq1      dw 65,69,430,440
+                       dw 70,74,430,440
+                       dw 75,79,430,440
+                       dw 75,79,419,230 
+              
                        
 Ulta_L                 dw 51,56,290,300
                        dw 51,56,300,310
@@ -136,12 +148,16 @@ offsetArray            dw 20,20,140,140
                        dw 20,20,140,140 
                        dw 20,20,140,140 
                        
-temp_nxt_piece         dw 0,0,0,0
+currentBlockR          dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+
+currentBlockAux        dw 0,0,0,0
                        dw 0,0,0,0
                        dw 0,0,0,0
                        dw 0,0,0,0
                        
-               
 choose_random_piece    dw 0,0,0,0
                        dw 0,0,0,0
                        dw 0,0,0,0
@@ -274,80 +290,111 @@ timer_tick EndP
 
 
 move_block Proc
-;   erase block at current position and display at new position
-;   input: CX = col of block position
-;   DX = rwo of block position
-;   erase block
-;   MOV AL, 0
-;   mov bx,300
-;   mov cx,310
-;   push ax
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;keyboard bae
- 
-;   mov ah, 1 ;keyboar buffer check korbe
-    mov ah, 1 ;keyboar buffer check korbe
+    mov ah, 1 ;keyboar buffer check stroke
     int 16h
-;   int 16h
-    jz foo
-    mov ah, 0   ; key input nibe
+    
+    jz exittt ;keystroke not aviable ZF=1
+    mov ah, 0   ; GET KEYSTOKE
     int 16h 
-    cmp al,97 ; a checker
+    cmp al,97  ; a checker
     je keya
     cmp al,100 ; d checker
-    je fix2
-    cmp al,115
-    je dours
-    foo: jmp boo
-    
+    je keyd
+    cmp al,115 ;s checker
+    je exitttt ;salir final
+    cmp al,119 ;w checker
+    je keyw
+    jmp exitttt
+    keyw:
+        call rotate_proc 
     keya:
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      
+        call moving_left
+        jmp exittt
+        
+    keyd:
+        call moving_right
+        jmp exittt    
+    
+        exittt:;prefinal
+            call pre_final_move_block
+            cmp bl,1
+            je check
+            jmp exits2
+         exitttt:
+            call pre_final_move_block2
+            jmp test_timer_loop1
+            continua_exitttt:
+            cmp bl,1
+            je check
+            jmp exits2
+            
+        check:
+            MOV timer_flag, 0     
+       
+       exits:
+        ret    
+    
+       test_timer_loop1:
+        CMP timer_flag,1
+        jne test_timer_loop1
+        call test_timer
+        jmp continua_exitttt
+        
+    exits2:
+    mov currentBlock[16],170 ;base del juego
+    mov currentBlockR[16],170
+    RET
+    
+move_block EndP
+
+
+moving_left proc
        xor cx,cx
        xor dx,dx
        mov cx,currentBlock[20]
        sub cx,45
        mov dx,currentBlock[16]
-fix1:   
-       jmp fix3
-fix2:
-       jmp keyd
-dours: jmp dour
-fix3:
-      
-       ; xor ax,ax
-       ;  mov dx,158
-       ;  mov cx,301
-       mov ah,0dh
-        
-        
+       
+
+       mov ah,0dh ;getting pixel color
        int 10h
+       
        cmp al,13
-       je boo
+       je end_lft
        cmp al,14
-       je boo
+       je end_lft
        cmp al,9
-       je boo
-       add dx,10
+       je end_lft
+       
+       add dx,10 ;getting pixel again
        int 10h
        cmp al,14
-       je boo
+       je end_lft
        cmp al,13
-       je boo
+       je end_lft
        cmp al,9
-       je boo
-      
+       je end_lft
+       jmp other_opc
+       end_lft: ;auxiliar
+            jmp end_lft1
+       
+       other_opc:    
        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       draw_full_block currentBlock,15 ,24
-       modify_column_elementsA currentBlock,30,30
-        
-    boo:   jmp exittt
-    
-    dour:  
-         jmp exitttt
-    
-    keyd: 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       draw_full_block currentBlock,15,24 ;se borra el anterior para redibujarse
+
+       modify_column_elementsA currentBlock,30,30  ;se corrigen coordenadas
+       modify_column_elementsA currentBlockR,30,30  ;se corrigen coordenadas
+       
+      
+
+       end_lft1:
+ret
+moving_left endp
+
+
+moving_right proc
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        xor cx,cx
        xor dx,dx
@@ -355,118 +402,139 @@ fix3:
        add cx,15
        mov dx,currentBlock[16]
        
-       ; xor ax,ax
-       ;  mov dx,158
-       ;  mov cx,301
-       mov ah,0dh
+    
+       mov ah,0dh ;getting pixel
         
         
        int 10h
        cmp al,13
-       je exittt
+       je end_move_right
        cmp al,14
-       je exittt
+       je end_move_right
        cmp al,9
-       je exittt
+       je end_move_right
        
        add dx,10
        int 10h
        cmp al,13
-       je exittt
+       je end_move_right
        cmp al,14
-       je exittt
+       je end_move_right
        cmp al,9
-       je exittt
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       je end_move_right
+       jmp fix_r
+       end_move_right:; an aux
+            jmp end_right
+    
+        fix_r:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     draw_full_block currentBlock,15 , 30
     modify_column_elementsD currentBlock,30,30
-        jmp exittt
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;muhahaha hoya gese  
+    modify_column_elementsD currentBlockR,30,30
+       
+    end_right:
+ret
+moving_right endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+pre_final_move_block proc  
+      draw_full_block currentBlock,15, 24 ;borrar
+      jmp test_timer_loop
+      
+      test_timer_loop:
+        CMP timer_flag,1
+        jne test_timer_loop
+        call test_timer
+        
+      ret      
+pre_final_move_block endp
 
 
-    
-exittt:    
-    
-      draw_full_block currentBlock,15, 24
-      
-     ;draw_full_block vertical,15
-     ;draw_full_block L_shape,15
-  
-      jmp test_timer
-      
-     ;   draw_block boxer_a,boxer_b,320,330,15
-     ;   draw_block boxer_a,boxer_b,332,342,15
-     ;   draw_block boxer_a,boxer_b,344,354,15
-    
-     ;   get new position  
-     ;   check boundary
-     ;   cmp cx,160
-     ;   jl exits
-     ;   CALL 
-     
-     ;   wait for 1 timer tick to display block
-     
- exitttt:
-    
+pre_final_move_block2 proc  
+         
  draw_full_block currentBlock,15, 24
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
        xor cx,cx
        xor dx,dx
        mov cx,currentBlock[4]
        inc cx
-       ;   add cx,20
+      
        mov dx,currentBlock[16]
        
         xor ax,ax
-       ;  mov dx,158
-       ;  mov cx,301
-          mov ah,0dh
+     
+        mov ah,0dh ;getting pixel color
         
        cmp dx,140
-       jg test_timer 
+       jg test_timer_jmp
        add dx,24
        
        int 10h
        cmp al,13
-       je test_timer
+       je test_timer_jmp
        cmp al,14
-       je test_timer
-       cmp al,9
-       je test_timer
+       je test_timer_jmp
+       cmp al,09
+       je test_timer_jmp
        add cx,20
        int 10h
        cmp al,13
-       je test_timer
+       je test_timer_jmp
        cmp al,14
-       je test_timer
+       je test_timer_jmp
        cmp al,9
-       je test_timer
-    ;   add cx 20
-      
-       ; add dx,10
-       ;int 10h
-       ; cmp al,09h
-       ;  je exittt
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       je test_timer_jmp
+       jmp fix_tt
+       
+       test_timer_jmp : ;aux
+                jmp test_timer_end 
+       
+       fix_tt:
+       cmp current_block,4
+       je especial1
        modify_row_elements currentBlock,12, 4
-    jmp test_timer
- 
-test_timer:
-   
+       cmp current_blockR,4
+       je especial2
+       regresaesp:
+       modify_row_elements currentBlockR,12, 4    
+       jmp test_timer_end
+       
+       especial1:
+          modify_row_elements currentBlock,12, 4 ;3 jalo
+          jmp regresaesp
+          
+       especial2:
+          modify_row_elements currentBlockR,12, 4 ;3 jalo
+      test_timer_end:
+      ret      
+pre_final_move_block2 endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+test_timer proc
     xor ax,ax
     CMP timer_flag, 1
-    JNE test_timer
+    Je CONTINUE_TEST
+    ret
     
-    modify_row_elements currentBlock,6 ,16
+    CONTINUE_TEST:
+    mov bx,0
+    cmp current_block,4
+    je especial3
+    modify_row_elements currentBlock,6 ,4
     
+    cmp current_blockR,4
+    je especial4
+    regresa_tt:
+    modify_row_elements currentBlockR,6 ,4
+    jmp continue_test2
+    
+    especial3:
+         modify_row_elements currentBlock,6 ,4
+         jmp regresa_tt
+    
+    especial4:
+         modify_row_elements currentBlockR,6 ,4
+    continue_test2:
     draw_full_block currentBlock,color,24
-   ; modify_row_elements vertical
-   ; modify_row_elements L_shape
-   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ;  push ax
-       ;  push cx
-       ;  push dx
+   
        xor cx,cx
        xor dx,dx
        mov cx,currentBlock[4]
@@ -474,78 +542,146 @@ test_timer:
        ;    ; add cx,
        mov dx,currentBlock[16]
        add dx,10
-       ; xor ax,ax
-       ;  mov dx,158
-       ;  mov cx,301
-       mov ah,0dh
+       
+       mov ah,0dh ;getting pixel color
         
         
        int 10h
        cmp al,13
-       je exits2
+       je end_test_timer
        cmp al,14
-       je exits2
+       je end_test_timer
        cmp al,9
-       je exits2
+       je end_test_timer
        
        add cx,20
       
        int 10h
        cmp al,13
-       je exits2
+       je end_test_timer
        cmp al,14
-       je exits2
+       je end_test_timer
        cmp al,9
-       je exits2   
+       je end_test_timer   
  
-      ; jne exits
-             
-           
-      ;   pop dx
-      ;   pop cx
-      ;   pop ax
-          
-      ;   jne exits2
-           
-      ;   exits2:
-      ;   mov currentBlock[18],160
-      ;   RET
-      
-      ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      ;   halum:    
-      
-      ;draw_full_block currentBlock,09h
-     
-   ;  draw_full_block vertical,08h
-   ;  draw_full_block L_shape,08h
-    
-    
-    ;draw_block boxer_a,boxer_b,320,330,08h
-    ;draw_block boxer_a,boxer_b,332,342,08h
-    ;draw_block boxer_a,boxer_b,344,354,08h
-    ;
-    
-    MOV timer_flag, 0
-   ; MOV AL, 3
-    
-    exits:
-    
-        RET
-        
-    exits2:
-    
-    ; mov cx,170
 
-    ; draw_full_block currentBlock,09h
-    mov currentBlock[16],170
-    
-    RET
-    
-    ;dec cx
-     
+       mov bl,1
+
+end_test_timer:
+ret
+test_timer endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+erase_last_update proc ;adem?s de borrar respaldar? el currentBlock para guardarse como el asociado de rotacon despu?s
+     draw_full_block currentBlock,15, 24
+     ;respaldamos y actualizamos
+     update_block currentBlock,currentBlockAux
+     update_block currentBlockR,currentBlock
+     update_block currentBlockAux,currentBlockR
+ret
+erase_last_update endp
+
+erase_last proc 
+     draw_full_block currentBlock,15, 24
+ret
+erase_last endp
+
+rotate_proc proc
+   cmp [current_block],1
+        je pz1_mov11 ;pieza 1 movimiento 1
         
+        cmp [current_block],2
+        je pz2_mov11 ;pieza 2 movimiento 1
         
-move_block EndP
+        cmp [current_block],3
+        je pz3_mov11
+        
+        call aux_rotate ;asociar  
+        ret
+        pz1_mov11:
+            call erase_last_update
+            mov current_block,4
+            mov current_blockR,1
+            ret
+            
+        pz2_mov11:
+            call erase_last_update
+            mov current_block,5
+            mov current_blockR,2
+            ret    
+         
+        pz3_mov11:
+            call erase_last_update
+            mov current_block,6
+            mov current_blockR,3
+            ret  
+            
+            
+    ret       
+rotate_proc endp
+
+aux_rotate proc
+         cmp [current_block],4
+         je pz1_mov00 ;pieza 1 movimiento 0 (SE REGRESA AL ORIGINAL)
+        
+        cmp [current_block],5
+        je pz2_mov00 ;pieza 2 movimiento 0 (SE REGRESA AL ORIGINAL)
+        
+        ;pieza 3 movimiento 0 (SE REGRESA AL ORIGINAL) current_block =6
+        call erase_last_update
+        mov current_block, 3
+        mov current_blockR,6
+        ret
+        
+        pz1_mov00:
+            call erase_last_update
+            mov current_block ,1
+            mov current_blockR,4
+            ret
+            
+        pz2_mov00:
+            call erase_last_update
+            mov current_block, 2
+            mov current_blockR,5
+            ret    
+ ret      
+aux_rotate endp
+
+
+
+
+associate_rotate_block proc
+        cmp [current_block],1
+        je pz1_mov1 ;pieza 1 movimiento 1
+        
+        cmp [current_block],2
+        je pz2_mov1 ;pieza 2 movimiento 1
+        
+        cmp [current_block],3
+        je pz3_mov1
+        
+       
+        pz1_mov1:
+            call erase_last
+            update_block vertical,currentBlockR
+            mov current_blockR,4
+            ret
+            
+        pz2_mov1:
+            call erase_last
+            update_block right_L,currentBlockR
+            mov current_blockR,5
+            ret    
+         
+        pz3_mov1:
+            call erase_last
+            update_block L_shape,currentBlockR
+            mov current_blockR,6
+            ret  
+            
+            
+    ret       
+associate_rotate_block endp
+
 
 
 check_line Proc
@@ -776,7 +912,39 @@ show_next_piece proc ;pattern_name - konta next piece box e dekhano hobe
       
 show_next_piece endp
 
+;keyboard strike
 
+
+gameover proc
+    xor ax,ax
+    xor cx,cx
+    xor dx,dx
+    mov dx,59
+    mov cx,297
+    mov ah,0dh
+    int 10h
+    cmp al,09h
+    je sesh1
+    cmp al,04h
+    je sesh1
+    cmp al,0eh
+    je sesh1
+    
+   
+    sesh: RET
+   
+    sesh1:
+   
+    
+   mov ah,0bh
+   mov bh,1
+   mov bl,13
+   int 10h
+   mov seshs,23
+   RET
+     
+   
+gameover endp
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -816,7 +984,7 @@ ALEATORIO ENDP
 ESCALANDO PROC
     ; ESCALANDO EL NUMERO PSEUDOALEATORIO OBTENIDO
     MOV DX,0
-    MOV BX,05H ;NUMEROS ALEATORIOS ENTRE 0 Y 9
+    MOV BX,03H ;NUMEROS ALEATORIOS ENTRE 0 Y 4
     DIV BX
     ADD DL,DH
     CMP DL,0
@@ -879,16 +1047,8 @@ notun_notun_block_banao:
             call gen_block
       
             update_block choose_random_piece, currentBlock
-            
-            
-            ;SEGUIR PROBANDO LA FORMA
-            ;update_block l_shape, currentBlock
-            ;set_bgd 07h
-            ;limpiar_pantalla 05h
-            ;mov bx,0
-            ;mov dx, [currentBlock+bx+]
-            ;desempaqueta dh
-            ;desempaqueta dl
+            CALL associate_rotate_block
+           
             
             call gen_next_piece
             call show_next_piece
@@ -896,6 +1056,7 @@ notun_notun_block_banao:
             time_delay currentBlock
              
             call check_line
+            
             
             mov ax,next_block
             mov current_block,ax
@@ -956,7 +1117,6 @@ GAME_OVER_SCREEN PROC
       
 
   SET_BGD 10
-
 
    display_string msg_game_over ,10,15,10,2 
     display_string msg_game_over ,10,15,10,2
