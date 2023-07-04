@@ -1,0 +1,180 @@
+;CATALOGO DE MACROS
+Sal_a_dos MACRO             ;Terminar el programa
+    MOV AH, 4Ch
+    INT 21h
+ENDM
+
+;-------------------Leer y escribir caracter y cadena--------------
+
+leer_car_con_eco MACRO      ;con eco significa que cuando lea aparece en la pantalla
+    MOV AH, 01              ;Deja el caracter leido en AL
+    INT 21h
+ENDM
+
+leer_car_sin_eco MACRO      ;no aparece el caracter leido en pantalla
+    MOV AH, 08
+    INT 21h
+ENDM
+
+Escribe_car MACRO car
+    push dx
+    push ax
+    mov dl, car
+    mov ah, 02
+    int 21h
+    pop ax
+    pop dx
+ENDM
+
+Alimentar_linea MACRO
+    PUSH DX
+    MOV DL, 0Ah             ;salto de linea
+    Escribe_car
+    MOV DL, 0Dh             ;retorno de carro
+    Escribe_Car
+    POP DX
+ENDM
+
+SALTA MACRO
+    ESCRIBE_CAR 0AH
+    ESCRIBE_CAR 0DH
+ENDM 
+
+Leer_cadena MACRO MEM
+    PUSH DX
+    PUSH AX
+    LEA DX,MEM
+    MOV AH,0AH
+    INT 21H
+    POP AX
+    POP DX
+ENDM
+
+Escribe_cadena MACRO cad
+    push dx
+    push ax
+    mov dl, cad
+    mov ah, 09
+    int 21h
+    pop ax
+    pop dx
+ENDM
+
+Escribe_cadena2 MACRO cad
+    push dx
+    push ax
+    Lea DX, cad
+    mov ah, 09
+    int 21h
+    pop ax
+    pop dx
+ENDM
+
+Mensaje MACRO
+    PUSH AX
+    MOV AH,09H
+    INT 21H
+    POP AX
+ENDM
+
+Lee MACRO
+    PUSH AX
+    MOV AH,01
+    INT 21H
+    POP AX
+ENDM
+
+Escribe MACRO
+    PUSH AX
+    MOV AH,02 ; Caracter a desplegar almacenado en dl
+    INT 21h
+    POP AX
+ENDM
+
+;-------------------Convertir caracteres ASCII FUNCIONES--------------
+
+Binario_Ascii MACRO
+    CMP DL,9h
+    JG SUMA37
+    ADD DL,30h
+    JMP FIN_Binario_Ascii
+    LOCAL SUMA37: ADD DL,37h
+    LOCAL FIN_Binario_Ascii:
+ENDM
+
+Ascii_Binario MACRO
+    CMP AL,30h
+    JL ERROR
+    CMP AL,39h
+    JG LETRA
+    SUB AL,30h ; Restar 30h
+    JMP FIN_Ascii_Binario
+    LOCAL LETRA: CMP AL,41h
+        JL ERROR
+        CMP AL,46h
+        JG ERROR
+        SUB AL,37h ; Restar 37h
+        JMP FIN_Ascii_Binario
+    LOCAL ERROR: MOV AL,0
+    LOCAL FIN_Ascii_Binario:
+ENDM
+
+Empaqueta MACRO
+    Push cx
+    Lee                     ; Leer el primera car
+    Ascii_binario           ;Procesa 1er. caracter
+    Mov cl,04
+    Shl al,cl               ; Instrucci n l gica de corrimiento a la izquierda ? ?
+    Mov ch,al               ; Almacenando el valor de AL a un registro auxiliar
+    Lee                     ; Leer el segundo car
+    Ascii_binario           ;Procesa 2o. caracter
+    Add al,ch               ; Sumar el contenido de los registros
+    Pop cx
+ENDM
+
+Desempaqueta MACRO dato
+    Push dx
+    Push cx
+    mov dh, dato        ;guardando dato
+    Mov dh,dl           ; Guardando el valor original en DH
+    Mov cl,4
+    Shr dl,cl           ; Cuatro corrimientos a la derecha
+    Binario_Ascii
+    Escribe
+    Mov dl,dh           ; Recuperando el dato de DH
+    And dl,0Fh          ; Aplicando mascara
+    Binario_ascii
+    Escribe
+    Pop cx
+    Pop dx
+ENDM
+
+;-------------------Operaciones de Pantalla--------------
+limpia MACRO
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    MOV AX,0600h
+    MOV BH,95H   ; FONDO 
+    MOV CX,0000H
+    MOV DX,184FH
+    INT 10h
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+ENDM
+
+FONDO MACRO           ;Define la paleta de colores
+    MOV AH,0BH      ;Set coloR palette (Func 0B/Int 10h)
+    MOV BH,0H       ;
+    MOV BL, 5H        ;MOV BL,COLOR   ;color 0-15 NECESITA ESTAR DECLARADO EN .DATA COLOR DB 0
+    INT 10H         ;Interrupt 10h Video functions
+ENDM
+
+GRAPH MACRO                    ;Inicia modo gr?fico
+  MOV AH,00H      ;Set video mode (Func 00/int 10h)
+  MOV AL,12H      ;12h = 80x30 8x16 640x480 16/256k A000 VGA, ATI, VIP
+  INT 10H         ;Interrupt 10h Video functions
+ENDM

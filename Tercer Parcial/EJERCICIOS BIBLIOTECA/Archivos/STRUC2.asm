@@ -1,0 +1,44 @@
+INCLUDE MC.LIB
+.MODEL small
+.STACK 100
+
+.DATA
+    NOM DB "Nombre: $"
+    TITULO DB "INGENIERIA EN COMPUTACION UTM$",13,10,"$"
+    TEXTO2 DB "ES ALUMNO DEL CURSO$"
+    SALTA DB 13,10,"$"
+
+ALUMNO STRUC
+    NOMBRE DB 40 DUP (0)
+    MATRICULA DB 20 DUP (0)
+    SEMESTRE DB 5 DUP (?)
+    MATERIA DB 30 DUP (?)
+    ESPECIAL DB 30 DUP (?)
+ALUMNO ENDS
+
+ESTUDIANTE ALUMNO <"Jorge Elorza Velasquez$","2021020098$","4$","Lenguaje Ensamblador$","Ninio Prodigio$">
+
+
+.CODE
+PRINCI PROC FAR
+;PROTOCOLO
+push ds
+sub ax,ax
+push ax
+MOV AX,@DATA
+MOV DS,AX
+
+Escribe_cadena2 TITULO
+SALTA
+SALTA
+Escribe_cadena2 NOM
+Leer_cadena 0100H
+SALTA
+Escribe_cadena2 0100H
+SALTA
+
+
+Sal_a_dos
+
+PRINCI ENDP
+END PRINCI
