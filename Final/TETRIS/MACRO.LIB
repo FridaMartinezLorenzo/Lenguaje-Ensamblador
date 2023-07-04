@@ -1,0 +1,618 @@
+INICIO_DC MACRO
+PUSH DS
+SUB AX,AX
+PUSH AX
+MOV AX,@data
+MOV DS,AX 
+ENDM
+;_________________________________________________________________________
+INICIO_DL MACRO
+PUSH DS 
+   SUB AX,AX
+   PUSH AX
+   MOV AX,SEG DATOS 
+   MOV DS,AX
+ENDM
+;_________________________________________________________________________
+LEE MACRO
+    push ax
+    mov ah,01h
+    int 21h
+    pop ax
+ENDM
+;_________________________________________________________________________
+ESCRIBE_CADENA MACRO CAD
+	PUSH DX
+	PUSH AX
+	LEA DX,CAD
+	MOV AH,09H
+	INT 21H
+	POP AX
+	POP DX
+ENDM
+;_________________________________________________________________________
+
+LEER_ECO MACRO
+	MOV AH,01
+	INT 21H
+ENDM
+;__________________________________________________________________________
+
+ESCRIBE_CAR MACRO DATO
+	PUSH DX
+	PUSH AX
+	MOV DL,DATO
+	MOV AH,02
+	INT 21H
+	POP AX
+	POP DX
+ENDM
+;_________________________________________________________________________
+
+SALTAR MACRO
+	ESCRIBE_CAR 0AH
+	ESCRIBE_CAR 0DH
+ENDM
+;_________________________________________________________________________
+
+EXIT_PROGRAMA MACRO 
+	MOV AH,4CH
+	INT 21H
+ENDM
+
+;__________________________________________________________________________
+
+ASCII_BINARIO MACRO DATO
+    LOCAL ERROR
+    LOCAL LETRAMINUS
+    LOCAL LETRAMAYUS
+    LOCAL FIN
+
+    CMP AL,30H
+    JL ERROR
+    CMP AL,60H
+    JG LETRAMINUS
+    CMP AL,39H
+    JG LETRAMAYUS
+    SUB AL,30H ;RESTAR 30 QUE ES EL 0
+    JMP FIN
+    LETRAMAYUS:
+      CMP AL,41H
+      JL ERROR
+      CMP AL,46H
+      JG ERROR
+      SUB AL,37H ; RESTAR 37 PARA LLEGAR AL VALOR DE "A" QUE ES 10D
+      JMP FIN
+    LETRAMINUS:
+      CMP AL,61H
+      JL ERROR
+      CMP AL,66H
+      JG ERROR
+      SUB AL,57H ; RESTAR 37 PARA LLEGAR AL VALOR DE "A" QUE ES 10D
+      JMP FIN
+   ERROR:
+   	MOV AL,00
+   FIN:
+ENDM
+;_______________________________________________________________________
+
+BINARIO_ASCII MACRO
+    LOCAL FIN
+    LOCAL SUMA37
+    CMP DL,9H  
+    JG SUMA37 ;Porque es un numero
+    ADD DL,30H
+    JMP FIN
+   SUMA37:
+     ADD DL,37H ;el dato se va a quedar en DL
+   FIN: 
+ENDM
+
+;_________________________________________________________________________
+ EMPAQUETA MACRO
+    PUSH CX                 ;shift left compromete al registro cx como contador
+    LEER_ECO
+    ASCII_BINARIO AL	    ;PROCESA EL 1ER CARACTER
+    MOV CL,04
+    SHL AL,CL               ;INSTRUCCION LOGICA DE CORRIMIENTO A LA IZQ
+    MOV CH,AL               ;ALMACENANDO EL VALOR DE AL A UN REGISTRO AUX
+    LEER_ECO		    ;LEER L SEGUNDO CAR
+    ASCII_BINARIO AL     	    ;PROCESA EL 2O. CARACTER
+    ADD AL,CH               ;la subrutina empaqueta deja la suma en al
+    POP CX
+ENDM
+;________________________________________________________________________
+
+DESEMPAQUETA MACRO DATO
+   PUSH DX
+   PUSH CX
+   MOV DL,DATO 		;GUARDAMOS EL DATO RECIBIDO
+   MOV DH,DL 		;GUARDANDO EL VALOR ORIGINAL DE DH
+   MOV CL,4
+   SHR DL,CL 		;CUATRO CORRIMIENTOS A LA DERECHA
+   BINARIO_ASCII
+   ESCRIBE_CAR DL
+   MOV DL,DH
+   AND DL,0FH 		;RECUPERANDO EL DATO DE DH
+   BINARIO_ASCII
+   ESCRIBE_CAR DL
+   POP CX
+   POP DX
+
+ENDM
+;__________________________________________________________________________
+LEERCADENA MACRO ZONA_MEM
+PUSH DX
+PUSH AX
+LEA DX,ZONA_MEM
+MOV AH,0AH
+INT 21H
+POP AX
+POP DX
+ENDM
+;__________________________________________________________________________
+
+   LIMPIAR_PANTALLA MACRO COLORES ;Color letra, color fondo un byte
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    MOV AH,06H
+    MOV AL,00h
+    MOV BH,COLORES    
+    MOV CX,0000H
+    MOV DX,8080
+    INT 10h
+    POP DX
+    POP CX
+    POP BX
+    POP AX
+  ENDM
+    
+;_________________________________________________________________________
+
+    POSICIONA_CURSOR MACRO RENGLON, COLUMNA
+        PUSH AX
+        PUSH BX
+        PUSH DX
+        MOV AH,02h
+        MOV BH,0
+        MOV DH, RENGLON
+        MOV DL, COLUMNA
+        INT 10H
+        POP DX
+        POP BX
+        POP AX
+     ENDM
+;_________________________________________________________________________
+
+CLEAR MACRO
+	LIMPIAR_PANTALLA 07H
+	POSICIONA_CURSOR 01 01
+ENDM
+
+;_____________________________________________________________________
+
+ESCRIBE_CADENA2 MACRO CAD,LONGI,REN,COL
+PUSH AX
+PUSH BX
+PUSH CX
+PUSH DX
+ INICIO_DL
+ MOV ES,AX
+ MOV AH,13H
+ MOV AL,0 ;SIGNIFICA QUE SON CHARS
+ SUB BH,BH ; VIDEO PAGE = 0
+ MOV BL,COLOR
+ MOV CX,LONGI
+ MOV DH,REN
+ MOV DL,COL
+ LEA BP,CAD
+ INT 10H
+POP DX
+POP CX
+POP BX
+POP AX
+ENDM
+
+   
+;__________________________________________________________________________
+    SET_BGD MACRO COLOR ;DEFINIR UN FONDO
+      MOV AH,0BH
+      MOV BH,0H
+      MOV BL,COLOR
+      INT 10H
+    ENDM
+      
+;____________________________________________________________________________
+;Macros Juego
+
+; Dibuja un reglon(x) de una columna (y) - columna(z)
+draw_row Macro x,y,z,color  ;x - renglon, y - columna inicial, z - columna final
+    Local L1
+    MOV AH, 0CH ;Cambiar el color a un solo pixel
+    MOV AL, color
+    MOV CX, y  ;columna
+    MOV DX, x  ;renglon
+L1: INT 10h
+    INC CX
+    CMP CX, z
+    JL L1
+    EndM
+
+  ;dibuja una columna (X) desde un renglon(y) - renglon(z)
+    draw_column Macro x,y,z,color ;x - columna, y - renglon inicial, z - renglon final
+    Local L2
+    MOV AH, 0CH 
+    MOV AL, color
+    MOV CX, x
+    MOV DX, y
+L2: INT 10h
+    INC DX
+    CMP DX, z
+    JL L2
+    EndM
+
+    ;desplegar una cadena con la INT 10
+    display_string Macro x,row,column,length,color
+    push ax
+    push bx
+
+    MOV AX, @DATA
+    MOV ES, AX  
+    
+    MOV AH, 13H ; ESCRIBE UNA CADENA
+    MOV AL, 0H  ; ATRIBUTO EN BL,MOVER EL CURSOR A ESA POSICION
+    XOR BH,BH   ; PAGINA
+    mov bl,color
+    
+    MOV BP, OFFSET x ; ES: BP QUE APUNTE A LA CADENA
+    MOV CX, length   ; LONGITUD DE LA CADENA
+    MOV DH, row      ; RENGLON DONDE SE POSICIONARA LA CADENA
+    MOV DL, column   ; COLUMNA DONDE SE PONDRÁ LA CADENA
+    INT 10H
+    
+    pop bx
+    pop ax
+    
+    EndM  
+    
+    
+;DIBUJAR UN BLOQUE (UN CUADRADO)
+ draw_block Macro start_row, end_row, start_column, end_column, color_block
+   Local along_row
+       
+    MOV DX, start_row
+  
+    along_row:
+    
+    draw_row  DX, start_column, end_column,color_block
+         INC DX
+         CMP DX, end_row
+         JLE along_row
+       
+    EndM
+
+    
+   
+;DIBUJAR EL PATRON DE UNA PIEZA
+draw_full_block Macro pattern_name, color, compare 
+    Local draw
+    
+    MOV BX,0
+    
+    draw:
+    draw_block [pattern_name+BX],[pattern_name+BX+2],[pattern_name+BX+4],[pattern_name+BX+6],color
+        ADD BX,8
+        CMP BX,compare
+        JLE draw
+    
+    EndM
+        
+
+ 
+update_block Macro pattern_name, blockToBeUpdated
+    local while
+    
+    push ax
+    push bx
+    push cx
+    mov cx,16
+    mov bx,0
+    
+    while:
+       mov ax,pattern_name[bx]
+       mov blockToBeUpdated[bx],ax
+       add bx,2
+       loop while
+         
+    pop cx
+    pop bx
+    pop ax
+    EndM
+       
+;pull row downwards
+modify_row_elements Macro pattern_name, delta, number_of_blocks
+    local ghuro,exit
+    
+    push ax
+    push bx
+    PUSH CX
+    PUSH DX
+    
+    
+    ;modify row elements
+    
+    mov cx,number_of_blocks
+    mov bx,0
+    
+    ghuro:
+        
+        xor ax,ax
+        xor dx,dx
+        
+        MOV ax,pattern_name[bx]
+        add ax,delta
+        MOV pattern_name[bx],ax
+        
+        add bx,2
+        
+        MOV dx,pattern_name[bx]
+        add dx,delta
+        MOV pattern_name[bx],dx
+        
+        add bx,6
+        
+        loop ghuro
+  
+    
+    exit:
+        pop dx
+        pop cx
+        pop bx
+        pop ax
+
+    EndM 
+    
+   
+modify_column_elementsD Macro pattern_name, delta, compare 
+    local byebye,shorao,koop
+    
+    
+   push ax
+   push bx
+   PUSH CX
+   PUSH DX
+    
+    ;modify column elements
+    
+    mov bx,4
+    
+    shorao: 
+    ; cmp pattern_name[30],345
+    ;    jg byebye
+   koop:     
+        MOV cx,pattern_name[bx]
+        add cx,delta
+        cmp cx,380
+        jge byebye
+        MOV pattern_name[bx],cx
+        
+        add bx,2
+        MOV dx,pattern_name[bx]
+        
+        add dx,delta
+        MOV pattern_name[bx],dx
+        
+        add bx,6
+        xor cx,cx
+        xor dx,dx
+        
+        cmp bx,compare
+        jle shorao
+        
+        
+  
+    byebye:
+
+        
+        pop dx
+        pop cx
+        pop bx
+        pop ax
+        
+    EndM    
+   
+    
+modify_column_elementsA Macro pattern_name, delta, compare
+    local byebye,shorao
+    
+        push ax
+        push bx
+        PUSH CX
+        PUSH DX
+    
+    ;modify column elements
+    
+    mov bx,4
+    
+    shorao:
+        
+        
+        MOV cx,pattern_name[bx]
+        sub cx,delta
+        cmp cx,220
+        jle byebye
+        MOV pattern_name[bx],cx
+        
+        add bx,2
+        MOV dx,pattern_name[bx]
+        sub dx,delta
+        MOV pattern_name[bx],dx
+        
+        
+        add bx,6
+        xor cx,cx
+        xor dx,dx
+        
+        cmp bx,compare
+        jle shorao
+        
+
+    byebye:
+        
+        ;sub cx,2            ; offset move
+        ;MOV pattern_name[bx],cx
+        
+            pop dx
+            pop cx
+            pop bx
+            pop ax
+        
+
+    EndM  
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+   
+
+ 
+time_delay Macro pattern_name
+    Local tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,sesh,show
+  ;  push ax
+    push bx
+    push cx
+    push dx
+    
+    tt:
+        CMP timer_flag, 1
+        JNE tt
+        MOV timer_flag, 0
+        
+        ;draw_block 158,163,235,360,08h
+        
+        
+        
+        CALL move_block
+        ;CALL check_line
+        
+        
+        mov bx,pattern_name[16]
+        cmp bX,158 ;fixed this one
+        jg sesh
+        
+        ;;;;;;;;;;;;;;;;;;;;;
+     ;   mov cx,pattern_name[20]
+     ;   add cx,5
+     ;   mov dx,pattern_name[16]
+     ;   add dx,10
+     ;   xor ax,ax
+     ;   mov ah,0dh
+     ;   int 10h
+     ;   cmp al,09h
+     ;   je sesh
+        ;;;;;;;;;;;;;;;;;;;;;
+        
+        
+        
+        
+    tt2:
+        CMP timer_flag, 1
+        JNE tt2
+        MOV timer_flag, 0
+    tt3:
+        CMP timer_flag,1
+        JNE tt3
+        MOV timer_flag,0
+    tt4:
+        CMP timer_flag,1
+        JNE tt4
+        MOV timer_flag,0
+    tt5:
+        CMP timer_flag,1
+        JNE tt5
+        MOV timer_flag,0
+    tt6:
+        CMP timer_flag,1
+        JNE tt6
+        MOV timer_flag,0
+    tt7:
+        CMP timer_flag,1
+        JNE tt7
+        MOV timer_flag,0
+    tt8:
+        CMP timer_flag,1
+        JNE tt8
+        MOV timer_flag,0
+    tt9:
+        CMP timer_flag,1
+        JNE tt9
+        MOV timer_flag,0
+    tt10:
+        CMP timer_flag,1
+        JNE tt10
+        MOV timer_flag,0
+    tt11:
+        CMP timer_flag,1
+        JNE tt11
+        MOV timer_flag,0
+
+      JMP tt
+    
+      
+    sesh:
+    
+    
+    ;  mov [block_boshche],1 
+    
+    pop dx
+    pop cx
+    pop bx
+    EndM 
+   
+  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;BCD WORK
+SUMA_BCD MACRO 
+LOCAL OTRO_CHAR_S
+LOCAL SALTAA
+LOCAL SALTARR
+;COPIAMOS LO QUE HAY EN SUMA EN ASC1
+LEA SI, ASC1
+LEA DI,game_score
+MOV CX,5
+OTRO_CHAR_S:
+    MOV AL,[DI]
+    MOV [SI],AL
+    INC SI
+    INC DI
+    LOOP OTRO_CHAR_S
+
+
+   ;mov si,10
+CLC ;limpia la bandera de acarreo.
+LEA SI,ASC1+4
+LEA DI, ASC2+4
+LEA BX, game_score+4
+MOV CX,05
+
+SALTAA:
+    MOV AH,00 ;garantizamos que AH este limpio.
+    MOV AL,[SI]
+    ADC AL,[DI] ;suma con carry.
+    AAA ;esta manejando el carry.
+    MOV [BX], AL
+    DEC SI
+    DEC DI
+    DEC BX
+LOOP SALTAA
+
+MOV [BX],AH ;AH tiene el acarreo.
+LEA BX,game_score+4
+MOV CX,05
+
+SALTARR:
+OR BYTE PTR [BX], 30h
+DEC BX
+LOOP SALTARR
+
+ENDM

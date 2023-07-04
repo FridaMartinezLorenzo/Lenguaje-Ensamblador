@@ -1,0 +1,1763 @@
+EXTRN I_MOUSE: NEAR
+EXTRN M_MOUSE: NEAR
+EXTRN F_MOUSE: NEAR
+
+INCLUDE MACRO.LIB
+.Model Small
+.Stack 100h
+
+
+.Data
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;score things
+ASC1 DB '00000'
+ASC2 DB '00100'
+game_score DB '00000'
+game_scoreINI DB '00000'
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MODE DB 0
+BANDERA_MENU DB 1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+new_timer_vec   dw  ?,?
+old_timer_vec   dw  ?,?
+a1              dw ?
+a2              dw ?
+b1              dw ?
+b2              dw ?
+score           dw ?
+flagg           db 0
+color           db 9 ;quisiese 9
+seshs           db 0
+next_color      db 13 ;quisiese 13
+line            dw 0
+timer_flag      db  0
+vel_x           dw  1
+vel_y           dw  1
+boxer_a         dw  ?   ; these two vars deal with current upper and lower row bounds
+boxer_b         dw  ?   ; of the single blocks
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                   strings that will be displayed                        ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+msg_next       db "Next$",0
+msg_left       db "A - Izquierda$"
+msg_right      db "D - Derecha$"
+msg_fast       db "S - + Rapido$"
+msg_rotate     db "W - Rotar$"
+msg_lines      db "Lines$"
+msg_score      db "Score$"
+msg_game_over  db "Game Over!$"
+msg_tetris     db "TETRIS$"
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+screen_width       dw 320
+column_limit       dw 0
+row_limit          dw 0
+block_width        dw 10
+block_height       dw 5
+block_boundary     dw 153
+block_boshche      dw 0
+box_medium         dw 100
+current_row        dw 0
+current_block      dw 0
+current_blockR     dw 0
+next_block         dw 0
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                   DATOS DEL MENU
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;TEXTO PARA LOS BOTONES DEL MENU
+    BTN1 DB "JUGAR$"
+    BTN2 DB "RANKING$"
+    BTN3 DB "SALIR$"
+   ;MENSAJES DE ERROR  
+    MOUSE_ERROR DB "ERROR EN EL MOUSE$"
+   ;MENSAJES DEL JUEGO
+    ENCABEZADO DB "JUEGO$"
+    R DB "RANKING$";
+    ;DATOS DE LA BASE DEL BOTON (SE REPETIR? ESTE PATRON EN LOS TRES) 
+    ALTURA DW 0 
+    ANCHO DW 0
+    INICIOC DW 0
+    INICIOR DW 0
+    FINC DW 0
+    FINR DW 0
+    COLOR_MENU DB 05H
+    ;COORDENADAS DEL CLICK
+    X1 DW 0 ;HORIZONTAL
+    Y1 DW 0 ;VERTICAL
+    
+    ;BANDERAS DE VALIDACION 
+    BT1 DB 0
+    BT2 DB 0
+    BT3 DW 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;               DATOS ARCHIVO
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+narchivo db "ScoreInf.TXT",00h
+fid dw ?
+leido db 10 dup("$"), '$'
+LIMPIAR db 10 dup("$"), '$'
+msg1 db 10,13, "Error: No se pudo abrir el archivo. $"
+msg2 db 10,13, "Error: No se puedo escribir el archivo. $"
+msg3 db 10,13, "Error: No se pudo crear el archivo. $"
+msg4 db 10,13, "Error: No se pudo leer en el archivo.$"
+bandera_error db 0
+procedimiento db 0 ; 0 es lectura 1 escritura
+REN_ESCRIBE DB 0
+;   JUGADOR
+ MSG_P1 DB "Nombre: $"
+ MSG_P2 DB "Alias: $"
+
+ NOMBRE_PLAYER DB 15,0, 15 DUP('$'),'$'
+ ALIAS_PLAYER  DB 15,0, 15 DUP('$'),'$'
+ SALTO DB 13,10,"$"
+ ESPACIOS DB 3 DUP(20H)
+;;;;;;;;;;;;; blocks ;;;;;;;;;;;;;;;;;;;;;;
+
+horizontal             dw 51,56,290,300
+                       dw 51,56,300,310
+                       dw 51,56,310,320
+                       dw 0,0,0,0
+                       
+
+next_horizontal        dw 71,76,430,440
+                       dw 71,76,440,450
+                       dw 71,76,450,460
+                       dw 0,0,0,0
+                       
+              
+vertical               dw 45,49,280,290
+                       dw 49,52,280,290 
+                       dw 52,56,280,290
+                       dw 0,0,0,0
+                       
+                       
+T_shape                dw 51,56,290,300
+                       dw 51,56,300,310
+                       dw 51,56,310,320
+                       dw 56,62,310,320
+                       
+       
+L_shape                dw 51,56,290,300
+                       dw 51,56,300,310
+                       dw 51,56,310,320
+                       dw 45,50,290,300
+                       
+
+                       
+next_L_shape           dw 71,76,430,440
+                       dw 71,76,440,450
+                       dw 71,76,450,460
+                       dw 65,70,430,440
+
+
+L_shape_izq1           dw 45,49,290,300
+                       dw 50,54,290,300
+                       dw 55,59,290,300
+                       dw 55,59,279,290 
+    
+                       
+next_L_shape_izq1      dw 65,69,430,440
+                       dw 70,74,430,440
+                       dw 75,79,430,440
+                       dw 75,79,419,230 
+              
+                       
+Ulta_L                 dw 51,56,290,300
+                       dw 51,56,300,310
+                       dw 51,56,310,320
+                       dw 57,64,310,320
+                       
+
+Ulta_T                 dw 51,56,290,300
+                       dw 51,56,300,310
+                       dw 51,56,310,320
+                       dw 45,50,310,320
+                       
+                       
+right_L                dw 51,56,290,300
+                       dw 51,56,300,310
+                       dw 51,56,310,320
+                       dw 45,50,310,320 
+                       
+                       
+next_right_L           dw 71,76,430,440
+                       dw 71,76,440,450
+                       dw 71,76,450,460
+                       dw 65,70,450,460
+                       
+                          
+currentBlock           dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+
+next_piece             dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       
+offsetArray            dw 20,20,140,140
+                       dw 20,20,140,140
+                       dw 20,20,140,140 
+                       dw 20,20,140,140 
+                       
+currentBlockR          dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+
+currentBlockAux        dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       
+choose_random_piece    dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       
+                       
+zero_matrix            dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                       dw 0,0,0,0
+                        
+                      
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.CODE
+
+MAIN PROC 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                              Initialization                        
+   MOV AX,@DATA
+   MOV DS,AX ;DATA INITIALIZATION 
+   MOV ES,AX
+  
+   
+   CICLO_DEL_MENU:
+   CALL MENU_MENU
+   CMP BANDERA_MENU,1
+   JE CICLO_DEL_MENU
+   
+   
+   ret
+   MAIN ENDP
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; all procedures ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; draw screen elements 
+
+procedure_draw_screen proc near
+    
+    draw_screen_border:
+        
+        ;top left to top right
+        draw_row 5,10,630,03h
+        ;top left to bottom left
+        draw_column 10,5,195,03h
+        ;top right to bottom right
+        draw_column 630,5,195,03h
+        ;bottom left to bottom right
+        draw_row 195,10,630,03h
+        
+    
+    draw_screen_play_area:
+        
+        ;top left to top right
+        draw_row 42,228,381,7
+        ;top left to bottom left
+        draw_column 228,42,165,7
+        ;top right to bottom right
+        draw_column 381,42,165,7
+        ;bottom left to bottom right
+        draw_row 165,228,381,7
+        
+        
+    draw_screen_next_piece:
+        
+        ;top left to top right
+        draw_row 50,400,487,13
+        ;top left to bottom left
+        draw_column 400,50,90,13
+        ;top right to bottom right
+        draw_column 487,50,90,13
+        ;bottom left to bottom right
+        draw_row 90,400,487,13
+        
+    
+    draw_screen_strings:
+        
+        
+        display_string msg_right,10,10,11,4
+        display_string msg_left,12,10,13,9
+        display_string msg_fast,14,10,12,13
+        display_string msg_rotate,16,10,9,14
+        ;display_string msg_tetris,3,35,6,12
+        display_string msg_next,12,54,4,2
+        display_string msg_score,18,53,5,9
+        display_string game_score,16,53,5,8
+        
+        ret
+    
+procedure_draw_screen endp
+
+
+
+setup_int Proc
+;    save old vector and set up new vector
+;    input: al = interrupt number
+;    di = address of buffer for old vector
+;    si = address of buffer containing new vector
+;    save old interrupt vector
+
+    MOV AH, 35h     ; get vector
+    INT 21h
+    MOV [DI], BX    ; save offset
+    MOV [DI+2], ES  ; save segment
+        
+;   setup new vector
+
+    MOV DX, [SI]    ; dx has offset
+    PUSH DS         ; save ds
+    MOV DS, [SI+2]  ; ds has the segment number
+    MOV AH, 25h     ; set vector
+    INT 21h
+    POP DS
+    RET
+setup_int EndP
+
+
+timer_tick Proc
+    PUSH DS
+    PUSH AX
+    
+    MOV AX, Seg timer_flag
+    MOV DS, AX
+    MOV timer_flag, 1
+    
+     
+exit:    
+    POP AX
+    POP DS
+    
+    IRET
+timer_tick EndP
+
+
+
+
+move_block Proc
+    mov ah, 1 ;keyboar buffer check stroke
+    int 16h
+    
+    jz exittt ;keystroke not aviable ZF=1
+    mov ah, 0   ; GET KEYSTOKE
+    int 16h 
+    cmp al,97  ; a checker
+    je keya
+    cmp al,100 ; d checker
+    je keyd
+    cmp al,115 ;s checker
+    je exitttt ;salir final
+    cmp al,119 ;w checker
+    je keyw
+    jmp exitttt
+    keyw:
+        call rotate_proc 
+    keya:
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        call moving_left
+        jmp exittt
+        
+    keyd:
+        call moving_right
+        jmp exittt    
+    
+        exittt:;prefinal
+            call pre_final_move_block
+            cmp bl,1
+            je check
+            jmp exits2
+         exitttt:
+            call pre_final_move_block2
+            jmp test_timer_loop1
+            continua_exitttt:
+            cmp bl,1
+            je check
+            jmp exits2
+            
+        check:
+            MOV timer_flag, 0     
+       
+       exits:
+        ret    
+    
+       test_timer_loop1:
+        CMP timer_flag,1
+        jne test_timer_loop1
+        call test_timer
+        jmp continua_exitttt
+        
+    exits2:
+    mov currentBlock[16],170 ;base del juego
+    mov currentBlockR[16],170
+    RET
+    
+move_block EndP
+
+
+moving_left proc
+       xor cx,cx
+       xor dx,dx
+       mov cx,currentBlock[20]
+       sub cx,45
+       mov dx,currentBlock[16]
+       
+
+       mov ah,0dh ;getting pixel color
+       int 10h
+       
+       cmp al,13
+       je end_lft
+       cmp al,14
+       je end_lft
+       cmp al,9
+       je end_lft
+       
+       add dx,10 ;getting pixel again
+       int 10h
+       cmp al,14
+       je end_lft
+       cmp al,13
+       je end_lft
+       cmp al,9
+       je end_lft
+       jmp other_opc
+       end_lft: ;auxiliar
+            jmp end_lft1
+       
+       other_opc:    
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       draw_full_block currentBlock,15,24 ;se borra el anterior para redibujarse
+
+       modify_column_elementsA currentBlock,30,30  ;se corrigen coordenadas
+       modify_column_elementsA currentBlockR,30,30  ;se corrigen coordenadas
+       
+      
+
+       end_lft1:
+ret
+moving_left endp
+
+
+moving_right proc
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       xor cx,cx
+       xor dx,dx
+       mov cx,currentBlock[20]
+       add cx,15
+       mov dx,currentBlock[16]
+       
+    
+       mov ah,0dh ;getting pixel
+        
+        
+       int 10h
+       cmp al,13
+       je end_move_right
+       cmp al,14
+       je end_move_right
+       cmp al,9
+       je end_move_right
+       
+       add dx,10
+       int 10h
+       cmp al,13
+       je end_move_right
+       cmp al,14
+       je end_move_right
+       cmp al,9
+       je end_move_right
+       jmp fix_r
+       end_move_right:; an aux
+            jmp end_right
+    
+        fix_r:
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    draw_full_block currentBlock,15 , 30
+    modify_column_elementsD currentBlock,30,30
+    modify_column_elementsD currentBlockR,30,30
+       
+    end_right:
+ret
+moving_right endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+pre_final_move_block proc  
+      draw_full_block currentBlock,15, 24 ;borrar
+      jmp test_timer_loop
+      
+      test_timer_loop:
+        CMP timer_flag,1
+        jne test_timer_loop
+        call test_timer
+        
+      ret      
+pre_final_move_block endp
+
+
+pre_final_move_block2 proc  
+         
+ draw_full_block currentBlock,15, 24
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       xor cx,cx
+       xor dx,dx
+       mov cx,currentBlock[4]
+       inc cx
+      
+       mov dx,currentBlock[16]
+       
+        xor ax,ax
+     
+        mov ah,0dh ;getting pixel color
+        
+       cmp dx,140
+       jg test_timer_jmp
+       add dx,24
+       
+       int 10h
+       cmp al,13
+       je test_timer_jmp
+       cmp al,14
+       je test_timer_jmp
+       cmp al,09
+       je test_timer_jmp
+       add cx,20
+       int 10h
+       cmp al,13
+       je test_timer_jmp
+       cmp al,14
+       je test_timer_jmp
+       cmp al,9
+       je test_timer_jmp
+       jmp fix_tt
+       
+       test_timer_jmp : ;aux
+                jmp test_timer_end 
+       
+       fix_tt:
+       cmp current_block,4
+       je especial1
+       modify_row_elements currentBlock,12, 4
+       cmp current_blockR,4
+       je especial2
+       regresaesp:
+       modify_row_elements currentBlockR,12, 4    
+       jmp test_timer_end
+       
+       especial1:
+          modify_row_elements currentBlock,12, 4 ;3 jalo
+          jmp regresaesp
+          
+       especial2:
+          modify_row_elements currentBlockR,12, 4 ;3 jalo
+      test_timer_end:
+      ret      
+pre_final_move_block2 endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+test_timer proc
+    xor ax,ax
+    CMP timer_flag, 1
+    Je CONTINUE_TEST
+    ret
+    
+    CONTINUE_TEST:
+    mov bx,0
+    cmp current_block,4
+    je especial3
+    modify_row_elements currentBlock,6 ,4
+    
+    cmp current_blockR,4
+    je especial4
+    regresa_tt:
+    modify_row_elements currentBlockR,6 ,4
+    jmp continue_test2
+    
+    especial3:
+         modify_row_elements currentBlock,6 ,4
+         jmp regresa_tt
+    
+    especial4:
+         modify_row_elements currentBlockR,6 ,4
+    continue_test2:
+    draw_full_block currentBlock,color,24
+   
+       xor cx,cx
+       xor dx,dx
+       mov cx,currentBlock[4]
+       inc cx
+       ;    ; add cx,
+       mov dx,currentBlock[16]
+       add dx,10
+       
+       mov ah,0dh ;getting pixel color
+        
+        
+       int 10h
+       cmp al,13
+       je end_test_timer
+       cmp al,14
+       je end_test_timer
+       cmp al,9
+       je end_test_timer
+       
+       add cx,20
+      
+       int 10h
+       cmp al,13
+       je end_test_timer
+       cmp al,14
+       je end_test_timer
+       cmp al,9
+       je end_test_timer   
+ 
+
+       mov bl,1
+
+end_test_timer:
+ret
+test_timer endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+erase_last_update proc ;adem?s de borrar respaldar? el currentBlock para guardarse como el asociado de rotacon despu?s
+     draw_full_block currentBlock,15, 24
+     ;respaldamos y actualizamos
+     update_block currentBlock,currentBlockAux
+     update_block currentBlockR,currentBlock
+     update_block currentBlockAux,currentBlockR
+ret
+erase_last_update endp
+
+erase_last proc 
+     draw_full_block currentBlock,15, 24
+ret
+erase_last endp
+
+rotate_proc proc
+   cmp [current_block],1
+        je pz1_mov11 ;pieza 1 movimiento 1
+        
+        cmp [current_block],2
+        je pz2_mov11 ;pieza 2 movimiento 1
+        
+        cmp [current_block],3
+        je pz3_mov11
+        
+        call aux_rotate ;asociar  
+        ret
+        pz1_mov11:
+            call erase_last_update
+            mov current_block,4
+            mov current_blockR,1
+            ret
+            
+        pz2_mov11:
+            call erase_last_update
+            mov current_block,5
+            mov current_blockR,2
+            ret    
+         
+        pz3_mov11:
+            call erase_last_update
+            mov current_block,6
+            mov current_blockR,3
+            ret  
+            
+            
+    ret       
+rotate_proc endp
+
+aux_rotate proc
+         cmp [current_block],4
+         je pz1_mov00 ;pieza 1 movimiento 0 (SE REGRESA AL ORIGINAL)
+        
+        cmp [current_block],5
+        je pz2_mov00 ;pieza 2 movimiento 0 (SE REGRESA AL ORIGINAL)
+        
+        ;pieza 3 movimiento 0 (SE REGRESA AL ORIGINAL) current_block =6
+        call erase_last_update
+        mov current_block, 3
+        mov current_blockR,6
+        ret
+        
+        pz1_mov00:
+            call erase_last_update
+            mov current_block ,1
+            mov current_blockR,4
+            ret
+            
+        pz2_mov00:
+            call erase_last_update
+            mov current_block, 2
+            mov current_blockR,5
+            ret    
+ ret      
+aux_rotate endp
+
+
+
+
+associate_rotate_block proc
+        cmp [current_block],1
+        je pz1_mov1 ;pieza 1 movimiento 1
+        
+        cmp [current_block],2
+        je pz2_mov1 ;pieza 2 movimiento 1
+        
+        cmp [current_block],3
+        je pz3_mov1
+        
+       
+        pz1_mov1:
+            call erase_last
+            update_block vertical,currentBlockR
+            mov current_blockR,4
+            ret
+            
+        pz2_mov1:
+            call erase_last
+            update_block right_L,currentBlockR
+            mov current_blockR,5
+            ret    
+         
+        pz3_mov1:
+            call erase_last
+            update_block L_shape,currentBlockR
+            mov current_blockR,6
+            ret  
+            
+            
+    ret       
+associate_rotate_block endp
+
+
+
+check_line Proc
+   xor ax,ax
+   xor bx,bx
+   xor cx,cx
+   xor dx,dx
+    
+hambahamba:
+    
+     mov ah,0dh
+    
+     mov a1,164
+     mov b1,56
+     mov a2,230
+     mov b2,240
+     
+     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
+    
+     mov line,170
+ ;    mov dx,line
+ continua:
+      mov cx,235  ;la ultima columna, pero despu?s del borde (inmediata sig)
+      sub line,6  ;ultimo renglon
+      mov dx,line ;renglon
+      mov a1,dx   
+      
+evaluar_sig_elem:
+    add cx,10  ; columnas 
+    cmp cx,380 ; El final del area de juego (la ultima columna)
+    jg adjust_score  ; Se completo la linea, ajustar score
+    xor ax,ax  
+    mov ah,0dh  ;obtener el color de un solo pixel   
+    int 10h
+    cmp al,13  ;comparar con el rosita pastel
+    je evaluar_sig_elem
+    cmp al,14  ;comparar con el amarillo
+    je evaluar_sig_elem
+    cmp al,9  ;comparar con el azuk
+    je evaluar_sig_elem
+    jmp hh3
+    
+adjust_score:
+        call score_administration
+     
+  hh1:
+    mov a2,220
+    sub a1,6
+    
+  hh2:
+    cmp a1,55
+    jl hh3
+    
+    add a2,10
+    cmp a2,370 ;fin la columna hasta donde se colocan los bloques (la barra inicial)
+    jg hh1
+    
+    mov bx,a1
+    add bx,6
+    mov b1,bx ;ultimo renglon del area de juego
+    
+    mov bx,a2
+    add bx,10
+    mov b2,bx ;columna inicial del area donde estan los bloques
+    
+    xor ax,ax
+    xor bx,bx
+    xor cx,cx
+    xor dx,dx
+    
+    mov cx,a2
+    inc cx
+   ; add cx,15
+    mov dx,a1
+    sub dx,4
+    mov ah,0dh
+    int 10h
+    
+    draw_block a1,b1,a2,b2,al ;Se limpia y actualizan las partes que sobran de la linea superior en la ultima (al tiene el color)
+    jmp hh2
+    
+hh3: 
+    mov a2,220
+    cmp line,60
+    jl fin_check
+    jmp continua
+    fin_check:
+
+RET
+check_line Endp
+
+score_administration proc
+     suma_bcd  ;el resultado queda en ascsum
+     ret
+score_administration endp
+
+imprime_score proc
+
+display_string game_score,16,53,5,8
+ret
+imprime_score endp
+
+gen_block proc
+
+    CALL SEMILLA
+    CALL ALEATORIO
+    CALL ESCALANDO
+    ;DL trae el numero aleatorio,esto nos permitir? generar una pieza aleatoria
+    mov dh,0
+    MOV next_block,dx
+    
+    cmp [current_block],1
+    je horizontal_piece
+    
+    cmp [current_block],2
+    je L_shape_piece
+     
+    cmp [current_block],3
+    je right_L_piece
+    
+    
+    horizontal_piece:
+    update_block horizontal, choose_random_piece
+            ;mov [next_block],2
+            ret
+   
+            
+    L_shape_piece:
+            update_block L_shape, choose_random_piece
+            ;mov [next_block],3
+            ret
+               
+    right_L_piece:
+             update_block right_L, choose_random_piece
+             ;mov [next_block],1
+             ret
+      
+    
+    ret 
+    
+gen_block endp
+
+
+gen_next_piece proc
+
+    cmp [next_block],1
+    je horizontal_pz
+    
+    cmp [next_block],2
+    je L_shape_pz
+    
+    cmp [next_block],3
+    je right_L_pz
+    
+   
+    horizontal_pz:
+            update_block next_horizontal, next_piece
+            ret
+            
+    L_shape_pz:
+           update_block next_L_shape, next_piece
+           ret
+            
+    right_L_pz:
+           update_block next_right_L, next_piece
+           ret
+
+         
+    ret 
+
+
+gen_next_piece endp
+
+
+show_next_piece proc ;pattern_name - konta next piece box e dekhano hobe 
+   
+       push bx
+       push cx
+       push dx
+       
+       draw_block 61,89,401,470,0Fh
+       
+       draw_full_block next_piece,[next_color], 24
+      
+      pop dx
+      pop cx
+      pop bx
+      
+      ret
+      
+show_next_piece endp
+
+;keyboard strike
+
+
+gameover proc
+    xor ax,ax
+    xor cx,cx
+    xor dx,dx
+    mov dx,59
+    mov cx,297
+    mov ah,0dh
+    int 10h
+    cmp al,09h
+    je sesh1
+    cmp al,04h
+    je sesh1
+    cmp al,0eh
+    je sesh1
+    
+   
+    sesh: RET
+   
+    sesh1:
+   
+    
+   mov ah,0bh
+   mov bh,1
+   mov bl,13
+   int 10h
+   mov seshs,23
+   RET
+     
+   
+gameover endp
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;           GENERACION ALEATORIA DE LA PIEZA
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+SEMILLA PROC
+    PUSH AX
+    MOV AH,2CH ; SERVICIO 2CH OBTIENE LA HORA ACTUAL EN EL SISTEMA
+    INT 21H ; RETORNA CH=HORAS, EN FORMATO 00-23, MEDIANOCHE=0
+
+    ; CL MINUTOS 00-59
+    ; DH SEGUNDOS 00-59
+    ; DL CENTESIMAS DE SEGUNDO 00-99
+
+    POP AX
+    RET
+SEMILLA ENDP
+
+ALEATORIO PROC
+    ; XN+1=(2053*XN + 13849)MOD (2**16-1)
+    ; RETORNA EL NUMERO PSEUDOALEATORIO EN AX
+    MOV AX,DX ;CARGANDO A AX EL NUMERO SEMILLA tomado de la int 21H serv  2CH
+    MOV DX,0 ;CARGANDO CERO EN LA POSICION MAS SIGNIFICATIVA DEL MULTIPLICANDO
+    MOV BX,2053 ; MULTIPLICADOR
+    MUL BX
+    MOV BX,13849 ;CARGA EN BX LA CONSTANTE ADITIVA
+    CLC
+    ADD AX,BX ; SUMA PARTES MENOS SIGNIFICATIVAS DEL RESULTADO
+    ADC DX,0 ; SUMA EL ACARREO SI ES NECESARIO
+    MOV BX,0FFFFH ; CARGAR LA CONSTANTE 2**16-1
+    DIV BX
+    MOV AX,DX ;MUEVE EL RESIDUO AX
+    RET
+ALEATORIO ENDP
+
+ESCALANDO PROC
+    ; ESCALANDO EL NUMERO PSEUDOALEATORIO OBTENIDO
+    MOV DX,0
+    MOV BX,03H ;NUMEROS ALEATORIOS ENTRE 0 Y 4
+    DIV BX
+    ADD DL,DH
+    CMP DL,0
+    JE SUMA1
+    JMP FIN_ES
+    SUMA1:
+        INC DL
+    FIN_ES: ;DATO QUEDA EN DL
+    RET
+ESCALANDO ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MODOVIDEO PROC
+    MOV AL,MODE
+    MOV AH,0
+    INT 10H
+RET
+MODOVIDEO ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;PROTOCOLO DEL JUEGO PARA SOLO MANDARLA A LLAMAR
+
+GAME_GAME PROC
+
+    LEA SI,game_score
+    LEA DI,game_scoreINI
+    MOV CX,5
+    inicializar_score:
+    MOV AL,[DI]
+    MOV [SI],AL
+    INC SI
+    INC DI
+    LOOP inicializar_score
+    
+   ; set CGA 640x200 high res mode
+   MOV MODE,0EH
+   CALL MODOVIDEO
+   
+   SET_BGD 15
+   
+   call procedure_draw_screen
+    
+   draw_block 158,164,236,360,0Fh ;es un bloque en la base del juego que nos ayudar? despu?s
+  
+     
+    MOV new_timer_vec, offset timer_tick
+    MOV new_timer_vec+2, CS
+    MOV AL, 1CH; interrupt type
+    LEA DI, old_timer_vec
+    LEA SI, new_timer_vec
+    CALL setup_int
+    
+    
+    CALL SEMILLA
+    CALL ALEATORIO
+    CALL ESCALANDO
+    
+    ;DL trae el numero aleatorio,esto nos permitir? generar una pieza aleatoria
+    mov dh,0
+    MOV current_block,dx
+    
+notun_notun_block_banao:
+        
+        cmp [current_block],3
+        jle continue_kor
+        
+        mov [current_block],1
+    
+        continue_kor:
+        
+            call gen_block
+      
+            update_block choose_random_piece, currentBlock
+            CALL associate_rotate_block
+           
+            
+            call gen_next_piece
+            call show_next_piece
+            
+            time_delay currentBlock
+             
+            call check_line
+            
+            
+            mov ax,next_block
+            mov current_block,ax
+            
+            call imprime_score
+            call gameover
+            cmp seshs,23
+            je FIN_DEL_JUEGO
+            
+            cmp color,13
+            je Corrige_color
+            
+            cmp next_color,9
+            je Corrige_next_color
+            
+            add next_color,1
+            
+            cmp next_color,14
+            jg Ooops_next
+           
+            add color,4
+           
+            cmp color,14
+            jg Ooops
+            
+
+            jmp notun_notun_block_banao
+Ooops:  
+        mov color,9
+        jmp notun_notun_block_banao
+        
+Ooops_next:  
+        mov next_color,9
+        jmp notun_notun_block_banao
+        
+Corrige_color:
+        mov color,14
+        mov next_color,9
+        jmp notun_notun_block_banao
+
+Corrige_next_color:
+        mov next_color,13
+        mov color,9
+        jmp notun_notun_block_banao        
+        
+FIN_DEL_JUEGO:
+    
+ CALL GAME_OVER_SCREEN
+ LEE ; SE ESPERARA CUALQUIER TECLA ANTES DE VOLVER AL MENU
+ LEE
+ 
+ 
+RET
+GAME_GAME ENDP
+
+
+GAME_OVER_SCREEN PROC
+  MOV MODE,13H
+  CALL MODOVIDEO
+      
+
+  SET_BGD 10
+
+   display_string msg_game_over ,10,15,10,2 
+    display_string msg_game_over ,10,15,10,2
+     display_string msg_game_over ,10,15,10,2
+      display_string msg_game_over ,10,15,10,2
+ RET
+GAME_OVER_SCREEN ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                               menu procedimientos
+;________________________________________________________________________________________________________
+
+
+
+MENU_MENU PROC
+  
+    MOV MODE, 12h  ;SE TRABAJAR? CON OTRO MODO DE VIDEO PARA DESPLEGAR EL MENU
+    ;VGA 640 X 480
+    CALL MODOVIDEO
+    
+    SET_BGD 156 ;EL QUINCEH ME GUSTA DE COLOR
+    LIMPIAR_PANTALLA 7FH
+    ;CREAMOS LA BASE DER FORMULARIO
+    MOV COLOR_MENU,14H ;LADRILLITO BONITO
+    MOV ANCHO,300
+    MOV ALTURA,300
+    
+    MOV INICIOC,95H ;COLUMNA DE INICIA
+    MOV INICIOR,40H ;RENGLON DE INICIO
+
+    MOV AX,INICIOC
+    MOV FINC,AX
+    MOV AX,ANCHO
+    ADD FINC,AX
+    
+    MOV AX,INICIOR
+    MOV FINR,AX
+    MOV AX,ALTURA
+    ADD FINR,AX
+    
+    CALL DRAW_RECTANGLE
+    
+    ;PEDIMOS DATOS ANTES
+    
+    POSICIONA_CURSOR 0D1H,75H
+    ESCRIBE_CADENA MSG_P1
+    
+   ;DIBUJAMOS LOS BOTONES
+    MOV COLOR_MENU,146
+    MOV ANCHO, 200 ; Ancho del rectangulo
+    MOV ALTURA, 50 ; Altura del rectangulo
+    
+    MOV INICIOC,0C9H ;COLUMNA DE INICIA
+    MOV INICIOR,70H ;RENGLON DE INICIO
+  
+  MOV CX,3  
+  BOTONES_BASE:
+  
+    MOV AX,INICIOC
+    MOV FINC,AX
+    MOV AX,ANCHO
+    ADD FINC,AX
+    
+    MOV AX,INICIOR
+    MOV FINR,AX
+    MOV AX,ALTURA
+    ADD FINR,AX
+    
+    CALL DRAW_RECTANGLE
+    ADD INICIOR,50H
+    LOOP BOTONES_BASE
+
+    ;PROCEDEMOS A PONERLE EL TEXTO CORRESPONDIENTE AL BOTON
+    display_string BTN1,8,35,5,15
+    display_string BTN2,13,35,7,15
+    display_string BTN3,18,35,5,15
+    
+    ;COMENZAMOS A TRABAJAR CON EL MOUSE
+     CALL I_MOUSE
+     CMP AX,00
+     JE ERROR_M
+     CALL M_MOUSE
+     JMP ESPERAR_INST
+     
+      ERROR_M:
+        ESCRIBE_CADENA MOUSE_ERROR
+        ;SE DEBE PROGRAMAR PARA NO SALIRSE SINO QUE SE REINTENTE
+        JMP FIN_PROGRAMA_PRINCI
+     
+ESPERAR_INST:
+     CALL CLICK
+    ;SE LLAMARA A LA MACRO RASTREAR CLICK
+        ;EVALUAR SI ES BOTON1
+        MOV BT1,0
+        MOV BT2,0
+        MOV BT3,0
+        MOV INICIOC,0C9H
+        MOV FINC,191H
+        MOV INICIOR,70H
+        MOV FINR,0A2H
+        MOV BL,1
+        CALL RASTREAR_CLICK
+        CMP BT1,1
+        JE START_GAME 
+
+        ;EVALUAR BOTON2
+        MOV BT1,0
+        MOV BT2,0
+        MOV BT3,0
+        MOV INICIOC,0C9H
+        MOV FINC,191H
+        MOV INICIOR,0C0H
+        MOV FINR,0F2H
+        MOV BL,2
+        CALL RASTREAR_CLICK  
+        CMP BT2,1
+        JE SHOW_RANKING
+        
+        ;EVALUAR BOTON3
+        MOV BT1,0
+        MOV BT2,0
+        MOV BT3,0
+        MOV INICIOC,0C9H
+        MOV FINC,191H
+        MOV INICIOR,110H
+        MOV FINR,132H
+        MOV BL,3
+        CALL RASTREAR_CLICK  
+        CMP BT3,1
+        JE SALIR_SALIR
+        JMP ESPERAR_INST ;SE CICLA EL MENU HASTA EL USUARIO DECIDA
+   
+        
+        START_GAME:;;;;;;;;;;;JUEGO
+            CALL F_MOUSE
+            call limpiar_cadena
+            CALL LEER_INFO_BUFFER
+            LIMPIAR_PANTALLA 07H
+            CALL GAME_GAME   
+            MOV PROCEDIMIENTO,1 ;ESCRIBIR ARCH
+            CALL PROCESAMIENTO_ARCHIVO
+            mov procedimiento,0
+            JMP FIN_PROGRAMA_PRINCI
+        SHOW_RANKING:
+            CALL F_MOUSE
+            LIMPIAR_PANTALLA 07H
+            CALL RANKING_BASE
+        JMP FIN_PROGRAMA_PRINCI
+        
+        SALIR_SALIR:
+            CALL F_MOUSE
+            CALL RESTAURA
+            EXIT_PROGRAMA
+FIN_PROGRAMA_PRINCI:
+RET
+MENU_MENU ENDP
+DRAW_RECTANGLE PROC
+   PUSH BX
+   PUSH CX
+   PUSH DX
+           
+        MOV DX,INICIOR
+    FILA:
+        MOV CX,INICIOC
+        
+       OTRAC:
+        CALL PIXEL
+        INC CX
+        CMP CX,FINC
+        JNE OTRAC
+        
+        INC DX
+        CMP DX,FINR
+        JNE FILA
+        
+        
+   POP DX
+   POP CX
+   POP BX     
+
+   RET
+DRAW_RECTANGLE ENDP
+
+PIXEL PROC
+PUSH AX
+PUSH BX
+    MOV AH,0CH
+    MOV AL,COLOR_MENU
+    MOV BH,0
+    ;MOV CX,COL
+    ;MOV DX,REN
+    INT 10H
+POP BX
+POP AX
+RET
+PIXEL ENDP
+
+;PROCESAMIENTO DEL CLICK
+CLICK PROC NEAR
+SAL3:
+    MOV AX, 03h ; Obtener estado de los botones del mouse
+    INT 33h
+    CMP BX, 01h ; Boton izquierdo presionado
+    JNE SAL3
+    ;GUARDAMOS COORDENADAS PORQUE SE HA DADO UN CLICK
+    MOV X1,CX
+    MOV Y1,DX
+    RET
+CLICK ENDP
+
+;______________________________________________________________________________
+RASTREAR_CLICK PROC 
+    MOV AX,X1
+
+    MOV CX,INICIOC
+    MOV DX,FINC
+    
+    COL:
+        CMP AX,CX
+        JE VALIDA2
+        INC CX
+        CMP CX,DX
+        JNE COL
+ 
+        JMP FIN_R ;NO COINCIDIO, FINALIZAMOS DE UNA VEZ
+      
+     VALIDA2:
+        MOV AX,Y1
+        MOV CX,INICIOR
+        MOV DX,FINR
+        REN:
+            CMP AX,CX
+            JE BANDERA
+            INC CX
+            CMP CX,DX
+            JNE REN
+        JMP FIN_R
+        
+     BANDERA:
+   ;EN BASE AL BOTON A EVALUAR RECIBIDO
+   MOV DH,1
+   ;EN BL VIENE EL NUMERO DEL BOTON
+   CMP BL,3
+   JE BBOTON3
+   CMP BL,2
+   JE BBOTON2
+   CMP BL,1
+    LEA SI,BT1 
+      MOV [SI],DH
+      JMP FIN_R
+   BBOTON2:  
+     LEA SI,BT2 
+      MOV [SI],DH
+      JMP FIN_R   
+   BBOTON3:
+    LEA SI,BT3 
+    MOV [SI],DH
+  FIN_R:
+RET
+RASTREAR_CLICK ENDP 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                               RANKING PROCEDIMIENTOS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;MOSTRAR EL RANKING
+RANKING_BASE PROC ;GRAFICOOOOO
+    MOV MODE, 12h  ;SE TRABAJAR? CON OTRO MODO DE VIDEO PARA DESPLEGAR EL MENU
+    ;VGA 640 X 480
+    CALL MODOVIDEO
+    
+    SET_BGD 156 ;EL QUINCEH ME GUSTA DE COLOR
+    LIMPIAR_PANTALLA 6FH
+    
+    display_string BTN2,2,0,7,0FH
+    
+    MOV PROCEDIMIENTO,0 ;VAMOS A LEER DATOS
+    MOV REN_ESCRIBE,5
+    POSICIONA_CURSOR 5,0
+    CALL PROCESAMIENTO_ARCHIVO
+    LEE
+RET
+RANKING_BASE ENDP
+;_________________________
+
+LEER_INFO_BUFFER PROC
+    MOV MODE, 12h  ;SE TRABAJAR? CON OTRO MODO DE VIDEO PARA DESPLEGAR EL MENU
+    ;VGA 640 X 480
+    CALL MODOVIDEO
+    
+    SET_BGD 156 ;EL QUINCEH ME GUSTA DE COLOR
+    LIMPIAR_PANTALLA 7FH
+    ;CREAMOS LA BASE DER FORMULARIO
+    MOV COLOR_MENU,6H ;LADRILLITO BONITO
+    MOV ANCHO,300
+    MOV ALTURA,300
+    
+    MOV INICIOC,95H ;COLUMNA DE INICIA
+    MOV INICIOR,40H ;RENGLON DE INICIO
+
+    MOV AX,INICIOC
+    MOV FINC,AX
+    MOV AX,ANCHO
+    ADD FINC,AX
+    
+    MOV AX,INICIOR
+    MOV FINR,AX
+    MOV AX,ALTURA
+    ADD FINR,AX
+    
+    CALL DRAW_RECTANGLE
+    
+    POSICIONA_CURSOR 7,30
+    ESCRIBE_CADENA MSG_P1
+    POSICIONA_CURSOR 12,30
+    LEERCADENA NOMBRE_PLAYER
+    
+    ;ALIAS
+        
+    SET_BGD 156 ;EL QUINCEH ME GUSTA DE COLOR
+    LIMPIAR_PANTALLA 7FH
+    ;CREAMOS LA BASE DER FORMULARIO
+    MOV COLOR_MENU,6H ;LADRILLITO BONITO
+    MOV ANCHO,300
+    MOV ALTURA,300
+    
+    MOV INICIOC,95H ;COLUMNA DE INICIA
+    MOV INICIOR,40H ;RENGLON DE INICIO
+
+    MOV AX,INICIOC
+    MOV FINC,AX
+    MOV AX,ANCHO
+    ADD FINC,AX
+    
+    MOV AX,INICIOR
+    MOV FINR,AX
+    MOV AX,ALTURA
+    ADD FINR,AX
+    
+    CALL DRAW_RECTANGLE
+    
+    
+    POSICIONA_CURSOR 7,30
+    ESCRIBE_CADENA MSG_P2
+    POSICIONA_CURSOR 12,30
+    LEERCADENA ALIAS_PLAYER
+RET 
+LEER_INFO_BUFFER ENDP
+
+;REGRESAR
+RESTAURA PROC
+MOV AX,03H
+INT 10H
+RET
+RESTAURA ENDP
+
+
+;__________________________________________________________
+
+;               ARCHIVOS PROCDEMIENTOS
+
+;_________________________________________________________
+
+PROCESAMIENTO_ARCHIVO PROC
+MOV BANDERA_ERROR,0 
+;call  leer_info_buffer
+
+call abrir_archivo
+cmp bandera_error,1
+je crear_archivo ;si se prendio no existe el archivo
+jmp continua_a
+
+crear_archivo:
+    mov bandera_error,0
+    call crear_abrir_arch 
+    cmp bandera_error,1
+    jne continua_A
+    jmp salida
+    continua_a: ;procesamos el uso del archivo como tal 
+        cmp procedimiento,0 ;es lectura
+        je l ;lectura
+        call cerrar_archivo
+        call abrir_file_escribir
+        call posicionar_ap
+        call escritura
+        jmp salida
+        l:
+            call lectura ; lectura e impresion 
+            JMP SALIDA
+
+salida:
+call cerrar_archivo
+RET
+PROCESAMIENTO_ARCHIVO ENDP
+
+
+ABRIR_ARCHIVO PROC
+;Abre archivo
+mov dx, offset narchivo
+mov ah, 3dh
+mov al, 00h
+int 21h
+jc error_abrir_a
+mov fid, ax
+jmp fin_abrir_arch
+
+error_abrir_a:
+    MOV BANDERA_ERROR,1
+    ESCRIBE_CADENA MSG1
+fin_abrir_arch:
+RET
+ABRIR_ARCHIVO ENDP
+
+
+abrir_file_escribir proc
+;Abrir para lectura
+;fid=fopen( "texto.txt", "W" );
+mov ah,3Dh              ;C?digo para abrir archivo
+mov al,01               ;Modo ESCRITURA
+mov dx,offset narchivo  ;Direcci?n del nombre
+int 21h                 ;Abrir, devuelve identificador del archivo
+jc error_open_w         ;En caso de error, saltar
+mov fid,ax              ;Guardar identificador
+jmp fin_open_w
+    error_open_w:
+        mov bandera_error,1
+fin_open_w:
+RET
+abrir_file_escribir endp
+
+posicionar_ap proc ;posiciona al final del archivo a fin de no reescribir
+mov bx,FID
+mov cx,0
+mov ah,42h
+mov al,02h
+int 21h
+RET
+posicionar_ap endp
+
+cerrar_archivo proc
+mov ah,3Eh
+mov bx,fid
+int 21h
+RET
+cerrar_archivo endp
+
+Crear_Abrir_Arch proc
+;Crear y abrir
+;fid=fopen( "texto.txt", "w" );
+mov ah,3Ch              ;C?digo para crear archivo.
+mov cx,0                ;Archivo normal.
+mov dx,offset narchivo  ;Direcci?n del nombre.
+int 21h                 ;Crear y abrir, devuelve ident.
+jc error_ca             ;Saltar en caso de error.
+mov fid,ax              ;guardar identificador en variable.
+jmp fin_ca
+
+error_ca:
+    mov bandera_error,1 
+fin_ca:
+ret
+Crear_Abrir_Arch endp 
+
+
+Escritura proc
+;fwrite( &contenido, srtlen( contenido ), 1, fid );
+mov ah,40h                    ;C?digo para escribir en archivo.
+mov bx,fid                    ;Identificador.
+LEA SI,NOMBRE_PLAYER+1        
+MOV CH,0                      
+mov CL,[SI]                   ;Tama?o de datos.
+mov dx,offset NOMBRE_PLAYER+2 ;Direcci?n b?fer.
+int 21h                       ;Escribir.
+JC ERROR_ESCRITURA
+
+CALL ESCRIBE_ESPACIOS
+
+;fwrite( &contenido, srtlen( contenido ), 1, fid );
+mov ah,40h                    ;C?digo para escribir en archivo.
+mov bx,fid                    ;Identificador.
+LEA SI,ALIAS_PLAYER+1        
+MOV CH,0                      
+mov CL,[SI]                   ;Tama?o de datos.
+mov dx,offset ALIAS_PLAYER+2 ;Direcci?n b?fer.
+int 21h                       ;Escribir.
+JC ERROR_ESCRITURA
+
+CALL ESCRIBE_ESPACIOS
+
+mov ah,40h 
+mov bx,fid 
+mov CX,5 
+mov dx,offset GAME_SCORE 
+int 21h             ;Escribir.
+jc error_escritura ;Saltar en caso de error.
+
+
+mov ah,40h ;C?digo para escribir en archivo.
+mov bx,fid ;Identificador.
+mov CX,2 ;Tama?o de datos.
+mov dx,offset SALTO ;Direcci?n b?fer.
+int 21h ;Escribir.
+jc error_escritura ;Saltar en caso de error.
+CALL LIMPIAR_CADENA
+JMP FIN_ESCRITURA
+error_escritura:
+    ESCRIBE_CADENA MSG2
+
+FIN_ESCRITURA:
+ret
+Escritura endp
+;____________________________________________
+ESCRIBE_ESPACIOS PROC
+;fwrite( &contenido, srtlen( contenido ), 1, fid );
+mov ah,40h                    ;C?digo para escribir en archivo.
+mov bx,fid                    ;Identificador.     
+MOV CX,3                      ;Tama?o de datos.
+mov dx,offset ESPACIOS        ;Direcci?n b?fer.
+int 21h                       ;Escribir.
+JC ERROR_ESCRITURA_ESPACIOS
+JMP FIN_EE
+error_escritura_ESPACIOS:
+    ESCRIBE_CADENA MSG2
+FIN_EE:
+RET
+ESCRIBE_ESPACIOS ENDP
+;___________________________________________
+
+;___________________________________________
+LIMPIAR_CADENA PROC
+MOV CX,15
+LEA SI,NOMBRE_PLAYER+1
+MOV AL,0
+MOV [SI],AL
+INC SI
+MOV AL,'$'
+LIMPIA1:
+    MOV [SI],AL
+    INC SI
+    LOOP LIMPIA1
+
+MOV CX,15
+LEA SI,ALIAS_PLAYER+1
+MOV AL,0
+MOV [SI],AL
+INC SI
+MOV AL,'$'
+LIMPIA:
+    MOV [SI],AL
+    INC SI
+    LOOP LIMPIA
+
+RET
+LIMPIAR_CADENA ENDP
+;______________________________
+;____________________________________________
+LECTURA PROC
+PUSH CX
+;leer archivo
+LEER: 
+    MOV AH,3FH
+    MOV BX,FID
+    MOV DX,OFFSET LEIDO
+    MOV CX,10
+    INT 21H
+    JC ERROR2
+    CMP AX,0
+    JZ FIN
+    JMP IMPRIMIR_FRAGMENTO
+    
+    REGRESA:
+    ;LIMPIAR EL BUFFER
+    PUSH CX
+    MOV SI,OFFSET LIMPIAR
+    MOV DI,OFFSET LEIDO
+    MOV CX,10
+    REP MOVSB
+    POP CX
+    JMP LEER
+    
+   
+        
+    ERROR2:
+    ESCRIBE_CADENA Msg4
+    MOV BANDERA_ERROR,1
+    JMP FIN   
+
+    IMPRIMIR_FRAGMENTO:;imprimir
+        ESCRIBE_CADENA LEIDO
+        JMP REGRESA
+
+FIN:
+POP CX
+RET
+LECTURA ENDP
+
+
+End main
